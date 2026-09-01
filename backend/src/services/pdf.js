@@ -32,12 +32,26 @@ function paletteFrom(settings) {
   };
 }
 
+/* Kwitansi kertas Indonesia secara tradisional berbentuk melintang, jadi
+   varian landscape disediakan berdampingan dengan yang tegak.
+
+   Landscape bukan sekadar memutar kertas: A5 melintang hanya setinggi 371pt
+   area cetak, sekitar 170pt lebih pendek daripada A5 tegak. Tinggi itu tidak
+   cukup untuk menumpuk ringkasan uang di atas blok QR dan tanda tangan,
+   sehingga tata letak pita bawahnya berbeda — lihat drawBottomLandscape(). */
 const PAGE_PRESETS = {
   a4: { size: 'A4', margin: 42, thermal: false, scale: 1.0 },
   a5: { size: 'A5', margin: 26, thermal: false, scale: 0.88 },
+  a4land: { size: 'A4', layout: 'landscape', margin: 38, thermal: false, scale: 0.95, landscape: true },
+  a5land: { size: 'A5', layout: 'landscape', margin: 24, thermal: false, scale: 0.85, landscape: true },
   thermal58: { size: [58 * MM, 400 * MM], margin: 7, thermal: true },
   thermal80: { size: [80 * MM, 400 * MM], margin: 10, thermal: true },
 };
+
+/* Satu-satunya sumber kebenaran daftar ukuran. Sebelumnya daftar ini
+   disalin di controller, pengaturan, skrip pratinjau, dan pengujian —
+   menambah ukuran berarti mengubah lima berkas dan satu pasti terlewat. */
+export const UKURAN_CETAK = Object.freeze(Object.keys(PAGE_PRESETS));
 
 const METHOD_LABEL = {
   tunai: 'Tunai',
@@ -53,11 +67,11 @@ const METHOD_LABEL = {
  * memenuhi PDF/A-3b — standar arsip jangka panjang.
  *
  * @param {object} receipt hasil query kwitansi lengkap beserta `items`
- * @param {'a4'|'a5'|'thermal58'|'thermal80'} size
+ * @param {'a4'|'a5'|'a4land'|'a5land'|'thermal58'|'thermal80'} size
  * @param {{archival?: boolean}} opts
  * @returns {Promise<PDFDocument>} stream PDF siap di-pipe
  */
-export async function buildReceiptPdf(receipt, size = 'a5', opts = {}) {
+export async function buildReceiptPdf(receipt, size = 'a5land', opts = {}) {
   const preset = PAGE_PRESETS[size] || PAGE_PRESETS.a5;
   const settings = await getSettings();
   const fonts = resolveFonts();
@@ -67,6 +81,7 @@ export async function buildReceiptPdf(receipt, size = 'a5', opts = {}) {
 
   const doc = new PDFDocument({
     size: preset.size,
+    layout: preset.layout || 'portrait',
     margin: preset.margin,
     pdfVersion: archival ? '1.7' : '1.3',
     subset: archival ? 'PDF/A-3b' : undefined,
@@ -257,84 +272,10 @@ function drawPaper(doc, r, s, F, preset, qr, C) {
   doc.moveTo(left, y).lineTo(right, y).lineWidth(0.9).strokeColor(C.line).stroke();
   y += 12 * k;
 
-  /* ---------- Ringkasan uang (kanan) + terbilang (kiri) ---------- */
-  const sumW = 210 * k;
-  const sumX = right - sumW;
-  const sumTop = y;
-
-  const rows = [
-    ['Subtotal', rupiah(r.subtotal), false],
-    ...(r.discount > 0 ? [['Diskon', `- ${rupiah(r.discount)}`, false]] : []),
-    ...(r.tax > 0 ? [['Pajak', rupiah(r.tax), false]] : []),
-    ['TOTAL DIBAYAR', rupiah(r.total), true],
-    ['Uang Diterima', rupiah(r.amount_paid), false],
-    ['Kembalian', rupiah(r.change_amount), false],
-  ];
-
-  let sy = sumTop;
-  for (const [label, value, strong] of rows) {
-    const h = strong ? 22 * k : 15 * k;
-    if (strong) doc.rect(sumX, sy, sumW, h).fill(C.brandSoft);
-    doc.font(strong ? F.bold : F.regular).fontSize(fs_(strong ? 10.5 : 8.6))
-      .fillColor(strong ? C.brand : C.ink);
-    doc.text(label, sumX + 8 * k, sy + (strong ? 6 * k : 3 * k), { width: sumW * 0.52, align: 'left' });
-    doc.text(value, sumX + sumW * 0.42, sy + (strong ? 6 * k : 3 * k), { width: sumW * 0.58 - 8 * k, align: 'right' });
-    sy += h;
-  }
-
-  const noteW = sumX - left - 14 * k;
-  doc.font(F.regular).fontSize(fs_(7.4)).fillColor(C.muted)
-    .text('TERBILANG', left, sumTop, { width: noteW, characterSpacing: 0.6 });
-  doc.font(F.italic).fontSize(fs_(9)).fillColor(C.ink)
-    .text(terbilangRupiah(r.total), left, doc.y + 1, { width: noteW });
-
-  doc.font(F.regular).fontSize(fs_(7.4)).fillColor(C.muted)
-    .text('METODE PEMBAYARAN', left, doc.y + 7 * k, { width: noteW, characterSpacing: 0.6 });
-  doc.font(F.medium).fontSize(fs_(9)).fillColor(C.ink)
-    .text(`${METHOD_LABEL[r.payment_method] || r.payment_method}${r.payment_ref ? ` — ${r.payment_ref}` : ''}`,
-      left, doc.y + 1, { width: noteW });
-
-  // Klinik lazim menerima beberapa rekening sekaligus; seluruhnya dicetak
-  // agar pasien tidak perlu bertanya nomor mana yang dipakai.
-  if (r.payment_method !== 'tunai' && s.payment_accounts) {
-    doc.font(F.regular).fontSize(fs_(7.4)).fillColor(C.muted)
-      .text(String(s.payment_accounts).trim(), left, doc.y + 3, { width: noteW, lineGap: 0.5 });
-  }
-  if (r.notes) {
-    doc.font(F.regular).fontSize(fs_(7.6)).fillColor(C.muted)
-      .text(`Catatan: ${r.notes}`, left, doc.y + 5 * k, { width: noteW });
-  }
-
-  y = Math.max(sy, doc.y) + 16 * k;
-
-  /* ---------- QR verifikasi + tanda tangan ---------- */
-  const blockH = 96 * k;
-  if (y + blockH > doc.page.height - M) {
-    doc.addPage();
-    y = M;
-  }
-
-  if (qr) {
-    const qrSize = 62 * k;
-    doc.image(qr.png, left, y, { fit: [qrSize, qrSize] });
-    doc.font(F.regular).fontSize(fs_(6.6)).fillColor(C.muted)
-      .text('Pindai untuk verifikasi keaslian', left, y + qrSize + 3, { width: 120 * k });
-    doc.font(F.medium).fontSize(fs_(7.2)).fillColor(C.ink)
-      .text(`Kode: ${qr.signature}`, left, doc.y + 1, { width: 120 * k });
-  }
-
-  const signW = 170 * k;
-  const signX = right - signW;
-  doc.font(F.regular).fontSize(fs_(8.6)).fillColor(C.ink)
-    .text(tanggalIndo(r.receipt_date), signX, y, { width: signW, align: 'center' });
-  doc.text(s.signer_title || 'Penerima', signX, doc.y + 2, { width: signW, align: 'center' });
-
-  const lineY = y + 62 * k;
-  doc.moveTo(signX + 18 * k, lineY).lineTo(right - 18 * k, lineY).lineWidth(0.7).strokeColor(C.ink).stroke();
-  doc.font(F.medium).fontSize(fs_(8.8)).fillColor(C.ink)
-    .text(s.signer_name || r.created_by_name || '-', signX, lineY + 4, { width: signW, align: 'center' });
-
-  y = Math.max(doc.y, lineY + 20 * k) + 8 * k;
+  /* ---------- Ringkasan uang, QR verifikasi, tanda tangan ---------- */
+  y = preset.landscape
+    ? drawBottomLandscape(doc, r, s, F, k, M, left, right, y, qr, C)
+    : drawBottomStacked(doc, r, s, F, k, M, left, right, y, qr, C);
 
   if (voided) {
     doc.font(F.medium).fontSize(fs_(7.6)).fillColor(C.danger)
@@ -355,6 +296,155 @@ function drawPaper(doc, r, s, F, preset, qr, C) {
   // Baris data terstruktur: memudahkan OCR/parser saat audit tanpa membuka database.
   doc.font(F.regular).fontSize(fs_(6.2)).fillColor(C.muted)
     .text(machineLine(r, qr), left, footY + 9 * k, { width: W, align: 'center', characterSpacing: 0.3 });
+}
+
+/* ------------------------------------------------------------------ */
+/* Blok penyusun pita bawah, dipakai ulang oleh tata letak tegak       */
+/* maupun melintang                                                     */
+/* ------------------------------------------------------------------ */
+
+/** Panel ringkasan uang. Mengembalikan koordinat Y bawah. */
+function drawMoneyPanel(doc, r, F, k, x, y, w, C) {
+  const baris = [
+    ['Subtotal', rupiah(r.subtotal), false],
+    ...(r.discount > 0 ? [['Diskon', `- ${rupiah(r.discount)}`, false]] : []),
+    ...(r.tax > 0 ? [['Pajak', rupiah(r.tax), false]] : []),
+    ['TOTAL DIBAYAR', rupiah(r.total), true],
+    ['Uang Diterima', rupiah(r.amount_paid), false],
+    ['Kembalian', rupiah(r.change_amount), false],
+  ];
+
+  const fontFor = (strong) => [strong ? F.bold : F.regular, (strong ? 10.5 : 8.6) * k];
+
+  // Lebar kolom label diukur dari teks terpanjang, bukan ditebak dari persentase
+  // lebar panel. "TOTAL DIBAYAR" tercetak tebal dan paling panjang; pada panel
+  // sempit — landscape — pecahan persentase membuatnya membungkus ke baris
+  // kedua lalu menimpa "Uang Diterima" di bawahnya.
+  let labelW = 0;
+  for (const [label, , strong] of baris) {
+    const [font, size] = fontFor(strong);
+    doc.font(font).fontSize(size);
+    labelW = Math.max(labelW, doc.widthOfString(label));
+  }
+  labelW = Math.min(labelW + 14 * k, w * 0.66);
+
+  let sy = y;
+  for (const [label, value, strong] of baris) {
+    const h = strong ? 22 * k : 15 * k;
+    const ty = sy + (strong ? 6 * k : 3 * k);
+    const [font, size] = fontFor(strong);
+    if (strong) doc.rect(x, sy, w, h).fill(C.brandSoft);
+    doc.font(font).fontSize(size).fillColor(strong ? C.brand : C.ink);
+    doc.text(label, x + 8 * k, ty, { width: labelW - 8 * k, align: 'left', lineBreak: false });
+    doc.text(value, x + labelW, ty, { width: w - labelW - 8 * k, align: 'right', lineBreak: false });
+    sy += h;
+  }
+  return sy;
+}
+
+/** Terbilang, metode pembayaran, rekening, dan catatan. Mengembalikan Y bawah. */
+function drawPaymentNotes(doc, r, s, F, k, x, y, w, C) {
+  const fs_ = (pt) => pt * k;
+
+  doc.font(F.regular).fontSize(fs_(7.4)).fillColor(C.muted)
+    .text('TERBILANG', x, y, { width: w, characterSpacing: 0.6 });
+  doc.font(F.italic).fontSize(fs_(9)).fillColor(C.ink)
+    .text(terbilangRupiah(r.total), x, doc.y + 1, { width: w });
+
+  doc.font(F.regular).fontSize(fs_(7.4)).fillColor(C.muted)
+    .text('METODE PEMBAYARAN', x, doc.y + 7 * k, { width: w, characterSpacing: 0.6 });
+  doc.font(F.medium).fontSize(fs_(9)).fillColor(C.ink)
+    .text(`${METHOD_LABEL[r.payment_method] || r.payment_method}${r.payment_ref ? ` — ${r.payment_ref}` : ''}`,
+      x, doc.y + 1, { width: w });
+
+  // Klinik lazim menerima beberapa rekening sekaligus; seluruhnya dicetak
+  // agar pasien tidak perlu bertanya nomor mana yang dipakai.
+  if (r.payment_method !== 'tunai' && s.payment_accounts) {
+    doc.font(F.regular).fontSize(fs_(7.4)).fillColor(C.muted)
+      .text(String(s.payment_accounts).trim(), x, doc.y + 3, { width: w, lineGap: 0.5 });
+  }
+  if (r.notes) {
+    doc.font(F.regular).fontSize(fs_(7.6)).fillColor(C.muted)
+      .text(`Catatan: ${r.notes}`, x, doc.y + 5 * k, { width: w });
+  }
+  return doc.y;
+}
+
+/** QR verifikasi beserta kode tercetaknya. Mengembalikan Y bawah. */
+function drawQrBlock(doc, F, k, x, y, w, qr, C) {
+  const sisi = Math.min(62 * k, w);
+  doc.image(qr.png, x, y, { fit: [sisi, sisi] });
+  doc.font(F.regular).fontSize(6.6 * k).fillColor(C.muted)
+    .text('Pindai untuk verifikasi keaslian', x, y + sisi + 3, { width: w });
+  doc.font(F.medium).fontSize(7.2 * k).fillColor(C.ink)
+    .text(`Kode: ${qr.signature}`, x, doc.y + 1, { width: w });
+  return doc.y;
+}
+
+/** Kolom tanggal, jabatan, garis, dan nama penanda tangan. */
+function drawSignature(doc, r, s, F, k, x, y, w, C) {
+  doc.font(F.regular).fontSize(8.6 * k).fillColor(C.ink)
+    .text(tanggalIndo(r.receipt_date), x, y, { width: w, align: 'center' });
+  doc.text(s.signer_title || 'Penerima', x, doc.y + 2, { width: w, align: 'center' });
+
+  const lineY = y + 62 * k;
+  doc.moveTo(x + 18 * k, lineY).lineTo(x + w - 18 * k, lineY).lineWidth(0.7).strokeColor(C.ink).stroke();
+  doc.font(F.medium).fontSize(8.8 * k).fillColor(C.ink)
+    .text(s.signer_name || r.created_by_name || '-', x, lineY + 4, { width: w, align: 'center' });
+
+  return Math.max(doc.y, lineY + 20 * k);
+}
+
+/**
+ * Tata letak tegak: ruang vertikal berlimpah, jadi ringkasan uang berdiri
+ * di atas blok QR dan tanda tangan.
+ */
+function drawBottomStacked(doc, r, s, F, k, M, left, right, y, qr, C) {
+  const sumW = 210 * k;
+  const sumX = right - sumW;
+
+  const bawahUang = drawMoneyPanel(doc, r, F, k, sumX, y, sumW, C);
+  const bawahNota = drawPaymentNotes(doc, r, s, F, k, left, y, sumX - left - 14 * k, C);
+
+  let by = Math.max(bawahUang, bawahNota) + 16 * k;
+
+  if (by + 96 * k > doc.page.height - M) {
+    doc.addPage();
+    by = M;
+  }
+
+  const bawahQr = qr ? drawQrBlock(doc, F, k, left, by, 120 * k, qr, C) : by;
+  const bawahTtd = drawSignature(doc, r, s, F, k, right - 170 * k, by, 170 * k, C);
+
+  return Math.max(bawahQr, bawahTtd) + 8 * k;
+}
+
+/**
+ * Tata letak melintang: lebar berlebih, tinggi cekak. Keempat blok berdiri
+ * berdampingan dalam satu pita agar tidak menabrak kaki halaman.
+ */
+function drawBottomLandscape(doc, r, s, F, k, M, left, right, y, qr, C) {
+  const gap = 10 * k;
+  const qrW = qr ? 66 * k : 0;
+  const signW = 124 * k;
+  const sumW = 196 * k;
+
+  if (y + 108 * k > doc.page.height - M - 26 * k) {
+    doc.addPage();
+    y = M;
+  }
+
+  const notaX = left + (qr ? qrW + gap : 0);
+  const signX = right - signW;
+  const sumX = signX - gap - sumW;
+  const notaW = sumX - gap - notaX;
+
+  const bawahQr = qr ? drawQrBlock(doc, F, k, left, y, qrW, qr, C) : y;
+  const bawahNota = drawPaymentNotes(doc, r, s, F, k, notaX, y, notaW, C);
+  const bawahUang = drawMoneyPanel(doc, r, F, k, sumX, y, sumW, C);
+  const bawahTtd = drawSignature(doc, r, s, F, k, signX, y, signW, C);
+
+  return Math.max(bawahQr, bawahNota, bawahUang, bawahTtd) + 8 * k;
 }
 
 /** Satu baris ringkas berformat tetap, mudah dipindai OCR maupun regex. */

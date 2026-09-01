@@ -173,13 +173,13 @@ check('nama pasien disamarkan di verifikasi publik', /\*/.test(pubJson.data?.pat
 const bad = await fetch(`${BASE}/api/verify?no=${encodeURIComponent(receipt.receipt_no)}&sig=AAAAAAAAAAAA`);
 check('kode verifikasi palsu ditolak', bad.status === 404);
 
-for (const size of ['a5', 'a4', 'thermal58', 'thermal80']) {
+for (const size of ['a5', 'a4', 'a5land', 'a4land', 'thermal58', 'thermal80']) {
   const p = await call('GET', `/api/receipts/${receipt.id}/pdf?size=${size}`, null, true);
   const head = p.buf.subarray(0, 8).toString('latin1');
   const body = p.buf.toString('latin1');
   check(`PDF ${size} terbentuk (${(p.buf.length / 1024).toFixed(0)} KB)`, p.status === 200 && head.startsWith('%PDF-'), head);
   check(`PDF ${size} font tertanam`, body.includes('FontFile2') || body.includes('FontFile3'));
-  if (size === 'a4' || size === 'a5') check(`PDF ${size} metadata PDF/A`, body.includes('pdfaid:part'));
+  if (!size.startsWith('thermal')) check(`PDF ${size} metadata PDF/A`, body.includes('pdfaid:part'));
 }
 
 r = await call('GET', '/api/reports/summary?date_from=2000-01-01&date_to=2099-12-31');

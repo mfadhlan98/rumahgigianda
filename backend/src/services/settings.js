@@ -37,7 +37,7 @@ export const SETTING_DEFS = {
 
   qr_enabled: { label: 'Tampilkan QR verifikasi', max: 1, fallback: () => '1' },
   qr_base_url: { label: 'URL dasar verifikasi QR', max: 200, fallback: () => '' },
-  default_print_size: { label: 'Ukuran cetak default', max: 12, fallback: () => 'a5' },
+  default_print_size: { label: 'Ukuran cetak default', max: 12, fallback: () => 'a5land' },
   logo_path: { label: 'Berkas logo', max: 300, fallback: () => '' },
 };
 

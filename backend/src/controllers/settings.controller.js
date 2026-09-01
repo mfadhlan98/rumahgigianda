@@ -5,6 +5,7 @@ import { getSettings, setSettings, SETTING_DEFS } from '../services/settings.js'
 import { logAudit } from '../services/audit.js';
 import { badRequest, notFound } from '../utils/httpError.js';
 import { isHex } from '../utils/color.js';
+import { UKURAN_CETAK } from '../services/pdf.js';
 
 const LOGO_DIR = path.join(env.receipt.storageDir, '..');
 const MAX_LOGO_BYTES = 3 * 1024 * 1024;
@@ -51,7 +52,7 @@ export async function save(req, res) {
     errors.receipt_prefix = 'Awalan hanya boleh huruf, angka, dan strip (maks. 12 karakter).';
   }
   if (patch.default_print_size !== undefined
-      && !['a4', 'a5', 'thermal58', 'thermal80'].includes(patch.default_print_size)) {
+      && !UKURAN_CETAK.includes(patch.default_print_size)) {
     errors.default_print_size = 'Ukuran cetak tidak dikenali.';
   }
 

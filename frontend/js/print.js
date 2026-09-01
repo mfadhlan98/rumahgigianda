@@ -7,8 +7,10 @@ import { api } from './api.js';
 import { h, modal, toastErr, toastOk, downloadBlob } from './ui.js';
 
 export const UKURAN = [
-  { value: 'a5', label: 'A5 — kwitansi standar', hint: 'Printer inkjet/laser, hasil HD, arsip PDF/A' },
-  { value: 'a4', label: 'A4 — dokumen penuh', hint: 'Untuk berkas klaim atau lampiran' },
+  { value: 'a5land', label: 'A5 melintang — kwitansi standar', hint: 'Bentuk kwitansi pada umumnya. Printer inkjet/laser, arsip PDF/A' },
+  { value: 'a4land', label: 'A4 melintang — kwitansi besar', hint: 'Sama, di kertas penuh. Tulisan lebih besar' },
+  { value: 'a5', label: 'A5 tegak', hint: 'Bila laci kwitansi klinik berbentuk memanjang ke bawah' },
+  { value: 'a4', label: 'A4 tegak — dokumen penuh', hint: 'Untuk berkas klaim atau lampiran' },
   { value: 'thermal80', label: 'Struk termal 80 mm', hint: 'Printer kasir gulungan 80 mm' },
   { value: 'thermal58', label: 'Struk termal 58 mm', hint: 'Printer kasir gulungan 58 mm' },
 ];
@@ -35,7 +37,7 @@ function clearCache() {
  * Kirim kwitansi langsung ke dialog cetak printer.
  * PDF dimuat pada iframe tersembunyi lalu dialog cetak dipanggil.
  */
-export async function printReceipt(id, size = 'a5') {
+export async function printReceipt(id, size = 'a5land') {
   const { url } = await loadPdf(id, size);
 
   const frame = h('iframe', {
@@ -68,7 +70,7 @@ export async function downloadReceipt(id, size, receiptNo) {
  * Buka jendela pratinjau kwitansi lengkap dengan pilihan ukuran kertas
  * serta tombol cetak/unduh.
  */
-export async function previewReceipt(id, receiptNo, defaultSize = 'a5') {
+export async function previewReceipt(id, receiptNo, defaultSize = 'a5land') {
   let size = defaultSize;
 
   await modal({

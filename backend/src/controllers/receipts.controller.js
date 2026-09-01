@@ -2,7 +2,7 @@ import QRCode from 'qrcode';
 import { db } from '../db/index.js';
 import { logAudit } from '../services/audit.js';
 import { periodOf, formatReceiptNo, nextSequence } from '../services/receiptNumber.js';
-import { buildReceiptPdf } from '../services/pdf.js';
+import { buildReceiptPdf, UKURAN_CETAK } from '../services/pdf.js';
 import { getSettings } from '../services/settings.js';
 import { qrPayload } from '../services/verification.js';
 import { badRequest, notFound, conflict } from '../utils/httpError.js';
@@ -324,8 +324,8 @@ export async function voidReceipt(req, res) {
 export async function pdf(req, res) {
   const receipt = await loadFull(req.params.id);
   const settings = await getSettings();
-  const requested = String(req.query.size || settings.default_print_size || 'a5').toLowerCase();
-  const size = ['a4','a5','thermal58','thermal80'].includes(requested) ? requested : 'a5';
+  const requested = String(req.query.size || settings.default_print_size || 'a5land').toLowerCase();
+  const size = UKURAN_CETAK.includes(requested) ? requested : 'a5land';
   const filename = `Kwitansi-${receipt.receipt_no.replace(/[^A-Za-z0-9]+/g, '-')}.pdf`;
   const disposition = req.query.download === '1' ? 'attachment' : 'inline';
 

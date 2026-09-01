@@ -36,7 +36,7 @@ server orang lain.
 
 **Kwitansi**
 - Nomor unik berformat `PREFIX/YYYYMM/NNNN`, urutan direset tiap bulan
-- Empat ukuran: A5, A4, serta struk termal 58 mm dan 80 mm
+- Enam ukuran: A5 dan A4 melintang (bentuk kwitansi Indonesia pada umumnya) maupun tegak, serta struk termal 58 mm dan 80 mm
 - Yang tampil di pratinjau sama persis dengan yang dicetak dan yang diarsipkan
 - Warna dan logo mengikuti identitas klinik sendiri
 
@@ -155,7 +155,7 @@ bukan kemudahan.
 Untuk melihat hasil cetak tanpa menerbitkan kwitansi sungguhan:
 
 ```bash
-npm run pratinjau -- a5 thermal80
+npm run pratinjau -- a5land thermal80
 ```
 
 ---

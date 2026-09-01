@@ -7,11 +7,11 @@
  * harus dibatalkan.
  *
  *   node pratinjau-kwitansi.mjs                 -> pratinjau-a5.pdf
- *   node pratinjau-kwitansi.mjs a4 thermal80    -> beberapa ukuran sekaligus
+ *   node pratinjau-kwitansi.mjs a5land a4 thermal80  -> beberapa ukuran sekaligus
  */
 
 import fs from 'node:fs';
-import { buildReceiptPdf } from './src/services/pdf.js';
+import { buildReceiptPdf, UKURAN_CETAK } from './src/services/pdf.js';
 import { db } from './src/db/index.js';
 
 /* Data contoh sengaja fiktif — berkas ini ikut disertakan ke mana pun aplikasi
@@ -44,8 +44,8 @@ const CONTOH = {
   ],
 };
 
-const ukuran = process.argv.slice(2).filter((a) => ['a4', 'a5', 'thermal58', 'thermal80'].includes(a));
-const dipakai = ukuran.length ? ukuran : ['a5'];
+const ukuran = process.argv.slice(2).filter((a) => UKURAN_CETAK.includes(a));
+const dipakai = ukuran.length ? ukuran : ['a5land'];
 
 for (const size of dipakai) {
   const doc = await buildReceiptPdf(CONTOH, size);

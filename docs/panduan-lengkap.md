@@ -104,7 +104,7 @@ kosong.
 * Nomor unik berformat `PREFIX/YYYYMM/NNNN` (contoh `KGM/202608/0001`),
   urutannya direset tiap bulan dan dijamin unik oleh indeks basis data.
 * Template HD: font Inter tertanam, tata letak grid, logo klinik resolusi tinggi.
-* Empat ukuran cetak: **A5**, **A4**, **struk termal 80 mm**, dan **58 mm**.
+* Enam ukuran cetak: **A5 melintang** (bawaan, bentuk kwitansi pada umumnya), **A4 melintang**, **A5 tegak**, **A4 tegak**, **struk termal 80 mm**, dan **58 mm**.
 * Cetak langsung ke printer atau simpan sebagai PDF — keduanya memakai berkas
   yang sama persis, sehingga tidak ada selisih tampilan antara layar dan kertas.
 
@@ -356,7 +356,7 @@ memerlukan header `Authorization: Bearer <token>`.
 | PATCH  | `/service-items/:id/status`     | admin  | Aktif / nonaktif                    |
 | GET    | `/receipts`                     | semua  | Arsip kwitansi (filter + halaman)   |
 | GET    | `/receipts/:id`                 | semua  | Detail + terbilang + QR             |
-| GET    | `/receipts/:id/pdf?size=a5`     | semua  | PDF (`a5`,`a4`,`thermal80`,`thermal58`) |
+| GET    | `/receipts/:id/pdf?size=a5land` | semua  | PDF (`a5land`,`a4land`,`a5`,`a4`,`thermal80`,`thermal58`) |
 | POST   | `/receipts`                     | semua  | Buat kwitansi                       |
 | POST   | `/receipts/:id/void`            | admin  | Batalkan kwitansi                   |
 | GET    | `/reports/summary`              | semua  | Rekap pendapatan                    |

@@ -35,7 +35,7 @@ records on someone else's server.
 
 **Receipts**
 - Unique numbers as `PREFIX/YYYYMM/NNNN`, sequence resets monthly
-- Four paper sizes: A5, A4, and 58 mm / 80 mm thermal
+- Six paper sizes: A5 and A4 in landscape (the traditional Indonesian receipt shape) and portrait, plus 58 mm / 80 mm thermal
 - What you preview is byte-for-byte what prints and what is archived
 - Brand colours and logo taken from the clinic's own identity
 
@@ -152,7 +152,7 @@ left empty — sample prices in a live clinic are a liability, not a convenience
 To see a printable receipt without issuing a real one:
 
 ```bash
-npm run pratinjau -- a5 thermal80
+npm run pratinjau -- a5land thermal80
 ```
 
 ---
