@@ -11,7 +11,7 @@ export default { mount };
 const ROLE_LABEL = { admin: 'Administrator', kasir: 'Kasir' };
 
 const AKSI_LABEL = {
-  login: 'Masuk', create: 'Tambah data', update: 'Ubah data', void: 'Batalkan kwitansi',
+  login: 'Masuk', login_blocked: 'Login diblokir', create: 'Tambah data', update: 'Ubah data', void: 'Batalkan kwitansi',
   print: 'Cetak kwitansi', deactivate: 'Nonaktifkan', activate: 'Aktifkan',
   change_password: 'Ganti password', reset_password: 'Reset password',
   upload_logo: 'Unggah logo', delete_logo: 'Hapus logo',

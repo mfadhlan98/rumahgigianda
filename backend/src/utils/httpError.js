@@ -11,3 +11,4 @@ export const unauthorized = (msg = 'Sesi tidak valid, silakan login ulang.') => 
 export const forbidden = (msg = 'Anda tidak punya hak akses untuk tindakan ini.') => new HttpError(403, msg);
 export const notFound = (msg = 'Data tidak ditemukan.') => new HttpError(404, msg);
 export const conflict = (msg, details) => new HttpError(409, msg, details);
+export const tooManyRequests = (msg, details) => new HttpError(429, msg, details);

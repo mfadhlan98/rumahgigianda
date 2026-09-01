@@ -2,8 +2,9 @@ import { db } from '../db/index.js';
 import { signToken } from '../middleware/auth.js';
 import { logAudit } from '../services/audit.js';
 import { verifyPassword, hashPassword, checkPasswordStrength } from '../utils/password.js';
-import { unauthorized, badRequest, forbidden } from '../utils/httpError.js';
+import { unauthorized, badRequest, forbidden, tooManyRequests } from '../utils/httpError.js';
 import { v } from '../utils/validate.js';
+import { sisaJeda, catatGagal, catatBerhasil } from '../services/loginThrottle.js';
 
 const publicUser = (u) => ({
   id: u.id,
@@ -19,13 +20,38 @@ export async function login(req, res) {
     .string('password', { required: true, max: 200, label: 'Password' })
     .done();
 
+  // Alamat soket mentah, bukan req.ip: header X-Forwarded-For bisa dipalsukan,
+  // dan pembatas yang bisa dilewati dengan mengarang header tidak membatasi apa pun.
+  const ip = req.socket?.remoteAddress || '-';
+
+  const tunggu = sisaJeda(data.username, ip);
+  if (tunggu > 0) {
+    throw tooManyRequests(
+      `Terlalu banyak percobaan login yang gagal. Coba lagi dalam ${tunggu} detik.`,
+    );
+  }
+
   const user = await db.get('SELECT * FROM users WHERE username = ?', [data.username]);
   // Pesan sengaja disamakan agar tidak membocorkan username mana yang ada.
   if (!user || !verifyPassword(data.password, user.password_hash)) {
+    const jeda = catatGagal(data.username, ip);
+    if (jeda > 0) {
+      // Percobaan yang memicu penguncian dicatat: pola berulang di jejak audit
+      // adalah satu-satunya tanda yang tersisa bila ada yang menebak password.
+      await logAudit(req, {
+        action: 'login_blocked',
+        entity: 'user',
+        detail: { username: data.username, jeda_detik: jeda },
+      });
+      throw tooManyRequests(
+        `Terlalu banyak percobaan login yang gagal. Coba lagi dalam ${jeda} detik.`,
+      );
+    }
     throw unauthorized('Username atau password salah.');
   }
   if (!user.is_active) throw forbidden('Akun Anda dinonaktifkan. Hubungi administrator.');
 
+  catatBerhasil(data.username, ip);
   await logAudit({ ...req, user }, { action: 'login', entity: 'user', entityId: user.id });
   res.json({ token: signToken(user), user: publicUser(user) });
 }

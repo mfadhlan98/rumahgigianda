@@ -254,6 +254,38 @@ check('jejak audit tercatat', r.status === 200 && r.json.data.length > 5, `n=${r
 r = await call('POST', '/api/auth/change-password', { current_password: 'salah', new_password: 'baru123' });
 check('ganti password dengan password lama salah ditolak', r.status === 400);
 
+/* ---- Pembatas percobaan login ---- */
+
+// Akun khusus supaya penguncian tidak mengenai akun admin yang masih dipakai
+// pengujian berikutnya — kuncinya gabungan username dan alamat asal.
+r = await call('POST', '/api/users', {
+  username: 'ujigembok', full_name: 'Uji Gembok', role: 'kasir', password: 'benar123',
+});
+check('akun uji pembatas dibuat', r.status === 201 || r.status === 200, JSON.stringify(r.json));
+
+let statusTerakhir = 0;
+let pesanTerakhir = '';
+for (let i = 0; i < 5; i += 1) {
+  const g = await call('POST', '/api/auth/login', { username: 'ujigembok', password: 'salah-terus' });
+  statusTerakhir = g.status;
+  pesanTerakhir = g.json?.error || '';
+}
+check('percobaan gagal beruntun berujung 429', statusTerakhir === 429, `status ${statusTerakhir}`);
+check('pesan 429 menyebut lama menunggu', /detik/i.test(pesanTerakhir), pesanTerakhir);
+
+// Password yang benar pun ikut ditolak selama masih terkunci — kalau tidak,
+// pembatasnya tidak membatasi apa pun.
+r = await call('POST', '/api/auth/login', { username: 'ujigembok', password: 'benar123' });
+check('password benar tetap ditolak selama terkunci', r.status === 429, `status ${r.status}`);
+
+// Akun lain dari alamat yang sama tidak boleh ikut terkunci.
+r = await call('POST', '/api/auth/login', { username: ADMIN_USER, password: ADMIN_PASS });
+check('akun lain tidak ikut terkunci', r.status === 200, `status ${r.status}`);
+
+r = await call('GET', '/api/users/audit/logs?limit=100');
+check('penguncian tercatat di jejak audit',
+  (r.json?.data || []).some((a) => a.action === 'login_blocked'));
+
 /* ---- Logo HD, awalan nomor dari pengaturan, dan penyajian halaman ---- */
 
 const { makeLogoPng } = await import('./make-logo.mjs');
