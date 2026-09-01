@@ -69,7 +69,7 @@ export const env = {
   seed: {
     adminUsername: process.env.SEED_ADMIN_USERNAME || 'admin',
     adminPassword: process.env.SEED_ADMIN_PASSWORD || 'admin123',
-    adminName: process.env.SEED_ADMIN_NAME || 'Administrator Klinik',
+    adminName: process.env.SEED_ADMIN_NAME || 'Dokter Gigi',
     // Sengaja mati secara bawaan: tarif contoh berisi harga karangan yang
     // berbahaya bila sampai tercetak di kwitansi asli. Nyalakan hanya untuk
     // demo atau pengembangan.

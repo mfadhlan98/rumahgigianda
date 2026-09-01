@@ -25,6 +25,14 @@ export const auth = {
     localStorage.removeItem(TOKEN_KEY);
     localStorage.removeItem(USER_KEY);
   },
+  /* Perbarui identitas yang tersimpan tanpa menyentuh token. Dipakai ketika
+     pengguna mengubah data dirinya sendiri — tanpa ini namanya di sidebar
+     tetap yang lama sampai ia keluar lalu masuk lagi. */
+  updateUser(patch) {
+    const kini = this.user;
+    if (!kini) return;
+    localStorage.setItem(USER_KEY, JSON.stringify({ ...kini, ...patch }));
+  },
   get isAdmin() { return this.user?.role === 'admin'; },
 };
 

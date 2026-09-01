@@ -2,7 +2,7 @@
 
 import { api, auth } from '../api.js';
 import {
-  h, toastOk, toastErr, applyErrors, modal, promptDialog,
+  el, h, toastOk, toastErr, applyErrors, modal, promptDialog,
 } from '../ui.js';
 import { card, field, collect, emptyRow } from './_shared.js';
 
@@ -172,6 +172,17 @@ async function mount(root, { actions }) {
 
     if (saved) {
       toastOk(saved.message);
+
+      // Mengubah data diri sendiri harus ikut menyegarkan identitas di sidebar,
+      // bukan menunggu pengguna keluar lalu masuk lagi.
+      if (saved.data && saved.data.id === auth.user?.id) {
+        auth.updateUser({ full_name: saved.data.full_name, role: saved.data.role });
+        const nama = el('#whoName');
+        const peran = el('#whoRole');
+        if (nama) nama.textContent = saved.data.full_name || saved.data.username || '—';
+        if (peran) peran.textContent = saved.data.role === 'admin' ? 'Administrator' : 'Kasir';
+      }
+
       loadUsers();
       loadAudit();
     }
