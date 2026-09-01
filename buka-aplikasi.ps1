@@ -97,9 +97,13 @@ $peramban = @(
   "${env:ProgramFiles(x86)}\Microsoft\Edge\Application\msedge.exe"
 ) | Where-Object { Test-Path $_ } | Select-Object -First 1
 
+# -WindowStyle Normal wajib ditulis eksplisit. Pintasan menjalankan berkas ini
+# lewat PowerShell tersembunyi, dan proses anak mewarisi status "sembunyikan
+# jendela" itu — peramban ikut terbuka tanpa jendela yang terlihat, sehingga
+# pengguna mengklik ikon lalu merasa tidak terjadi apa-apa.
 if ($peramban) {
-  Start-Process -FilePath $peramban -ArgumentList "--app=$Alamat"
+  Start-Process -FilePath $peramban -ArgumentList "--app=$Alamat" -WindowStyle Normal
 } else {
   # Tidak ada Chrome/Edge — buka dengan peramban bawaan apa pun itu.
-  Start-Process $Alamat
+  Start-Process $Alamat -WindowStyle Normal
 }
