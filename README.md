@@ -90,10 +90,25 @@ branded surface is chosen by WCAG contrast ratio — so a light brand colour fli
 text to dark instead of disappearing.
 See [`utils/color.js`](backend/src/utils/color.js).
 
-**Same-origin requests are always allowed.** The second clinic PC reaches the app at
+**Same-origin requests are always allowed.** A second clinic PC reaches the app at
 `http://192.168.1.50:4000`, an address unknowable at build time. CORS compares the
 request's own host rather than a preconfigured list, so LAN access works without
 configuration while foreign origins still get nothing.
+
+**Login throttling is keyed on username *and* source address.** Keying on the
+username alone would let anyone lock a clinic out of its own system; keying on the
+address alone would let one attacker's failures lock every account. The correct
+password is refused while a lockout is active — otherwise the delay is trivially
+ignored. The source address comes from the raw socket, not `req.ip`: a throttle you
+can bypass by inventing an `X-Forwarded-For` header throttles nothing.
+See [`services/loginThrottle.js`](backend/src/services/loginThrottle.js).
+
+**The web app manifest is generated, not a static file.** Icon and colours come from
+the clinic's own settings, so any clinic installing this gets its own name and logo
+on the taskbar without editing anything. Clinic logos are rarely square while
+operating systems demand square icons, so the icon is composed as an SVG that centres
+the logo on a square field — no image library involved.
+See [`controllers/branding.controller.js`](backend/src/controllers/branding.controller.js).
 
 ---
 
@@ -178,8 +193,8 @@ and says so rather than failing halfway.
 The clinic-facing manuals are written in Indonesian, since that is who reads them.
 
 - [`docs/panduan-lengkap.md`](docs/panduan-lengkap.md) — full technical guide:
-  configuration, LAN deployment for two PCs, MySQL migration, backup and restore,
-  and the complete API reference.
+  configuration, clinic deployment, remote access over Tailscale, MySQL migration,
+  backup and restore, and the complete API reference.
 
 ---
 

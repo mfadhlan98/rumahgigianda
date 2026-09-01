@@ -232,38 +232,52 @@ adapter di `backend/src/db/`.
 
 ---
 
-## 6. Pemasangan di jaringan klinik (2 PC)
+## 6. Pemasangan di klinik
 
-Susunan yang disarankan: satu PC menjalankan server sekaligus menyimpan data,
-PC lain cukup membuka browser. **Tidak perlu internet sama sekali** — justru
-itu yang membuat sistem hanya bisa dipakai dari dalam klinik.
+Susunan yang disarankan: satu komputer di meja admin menjalankan server sekaligus
+menyimpan data. **Tidak perlu internet sama sekali** untuk pemakaian sehari-hari —
+justru itu yang membuat data pasien tidak pernah meninggalkan klinik.
 
 ```
-PC 1 (meja kasir)  ── menjalankan server + menyimpan database
-       │                buka http://localhost:4000
-   router klinik
-       │
-PC 2 (ruang pemilik) ── cukup browser, buka http://<ip-pc-1>:4000
+Komputer klinik ── menjalankan server + menyimpan database
+                    buka lewat ikon "Kwitansi Klinik" di desktop
 ```
 
-Alamat IP PC 1 ditampilkan sendiri oleh server saat menyala.
+Pengguna tidak pernah mengetik alamat. Skrip `4-buat-pintasan.ps1` memasang ikon
+berlogo klinik yang menyalakan server bila belum hidup, lalu membuka aplikasinya
+sebagai jendela tersendiri — tanpa kolom alamat dan tanpa jendela konsol.
 
-### Langkah pemasangan di PC 1
+### Skrip pemasangan
 
-Folder `skrip-windows/` berisi tiga skrip PowerShell yang dijalankan berurutan:
+Folder `skrip-windows/` berisi empat skrip PowerShell:
 
 | Skrip | Fungsi | Perlu admin |
 | ----- | ------ | ----------- |
 | `1-izinkan-firewall.ps1` | Membuka port 4000 untuk jaringan Private saja | Ya |
 | `2-pasang-autostart.ps1` | Server menyala sendiri saat komputer dihidupkan | Tidak |
 | `3-jadwalkan-backup.ps1` | Pencadangan otomatis tiap hari pukul 20:00 | Tidak |
+| `4-buat-pintasan.ps1` | Ikon desktop berlogo klinik | Tidak |
 
 Skrip 2 dan 3 punya opsi `-Hapus` untuk membatalkannya. Jam pencadangan bisa
 diubah, misalnya `.\3-jadwalkan-backup.ps1 -Jam 21:30`.
 
-Di PC 2 tidak ada yang perlu dipasang — cukup buat pintasan browser ke alamat
-PC 1. Agar alamat itu tidak berubah-ubah, kunci IP PC 1 lewat **DHCP
-reservation** di router klinik.
+### Komputer tambahan
+
+Bila klinik memakai lebih dari satu komputer, yang lain cukup membuka
+`http://<ip-komputer-server>:4000` — tidak ada yang perlu dipasang. Jalankan
+`4-buat-pintasan.ps1 -Alamat http://<ip>:4000` di komputer itu supaya
+penggunanya juga tidak perlu mengetik alamat. Agar alamatnya tidak berubah-ubah,
+kunci IP komputer server lewat **DHCP reservation** di router.
+
+### Akses dari luar klinik
+
+Bila pemilik klinik ingin melihat rekap dari rumah, pasang **Tailscale** di
+komputer klinik dan di perangkatnya. Keduanya masuk ke satu jaringan pribadi dan
+saling terhubung tanpa satu pun port dibuka ke internet, tanpa domain, dan tanpa
+server sewaan. Data tetap tersimpan di komputer klinik.
+
+Alamat Tailscale (`100.x.x.x`) bersifat tetap, sehingga DHCP reservation tidak
+diperlukan lagi. Komputer klinik harus tetap menyala agar bisa dihubungi.
 
 ### Membatasi ke komputer tertentu saja
 
@@ -272,11 +286,14 @@ Untuk lapisan kedua — agar perangkat tamu yang ikut Wi-Fi klinik pun tidak bis
 membukanya — isi `ALLOWED_IPS` di `.env`:
 
 ```ini
-# hanya dua PC klinik
-ALLOWED_IPS=192.168.18.2,192.168.18.3
+# hanya komputer tertentu
+ALLOWED_IPS=192.168.1.10,192.168.1.11
 
-# atau seluruh jaringan lokal
-ALLOWED_IPS=192.168.18.0/24
+# seluruh jaringan lokal
+ALLOWED_IPS=192.168.1.0/24
+
+# termasuk perangkat lewat Tailscale
+ALLOWED_IPS=192.168.1.0/24,100.64.0.0/10
 ```
 
 Kosongkan untuk mematikan pembatasan ini. Komputer server sendiri (localhost)
@@ -284,8 +301,19 @@ selalu diizinkan, jadi salah tulis tidak akan mengunci Anda keluar sepenuhnya.
 Pemeriksaan memakai alamat soket asli, bukan header `X-Forwarded-For`, sehingga
 tidak bisa dipalsukan dari sisi klien.
 
-> Pakai bersama DHCP reservation. Bila IP PC diberikan acak oleh router, suatu
-> saat alamatnya berubah dan staf akan terkunci di luar.
+> Bila memakai Tailscale, alamat `100.64.0.0/10` wajib ikut didaftarkan — kalau
+> tidak, perangkat yang masuk lewat VPN justru terblokir.
+
+### Pembatas percobaan login
+
+Sejak aplikasi bisa dihubungi dari luar klinik, penebakan password ditahan
+bertahap: lima kegagalan menahan satu menit, delapan kegagalan lima menit, dua
+belas kegagalan lima belas menit. Hitungannya berdasarkan kombinasi username dan
+alamat asal, sehingga satu akun yang diserang tidak mengunci akun lain.
+
+Selama masa tunggu, password yang benar pun ditolak — kalau tidak, jedanya bisa
+diabaikan begitu saja. Percobaan yang memicu penguncian tercatat di jejak audit
+sebagai `login_blocked`.
 
 ---
 

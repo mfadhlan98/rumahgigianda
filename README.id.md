@@ -97,6 +97,21 @@ Lihat [`utils/color.js`](backend/src/utils/color.js).
 membandingkan host permintaan itu sendiri, bukan daftar yang disiapkan lebih dulu —
 akses jaringan lokal langsung jalan tanpa konfigurasi, sementara asal luar tetap ditolak.
 
+**Pembatas login memakai kunci username *dan* alamat asal.** Mengunci berdasarkan
+username saja membuat siapa pun bisa mengunci klinik dari sistemnya sendiri; berdasarkan
+alamat saja membuat kegagalan satu penyerang mengunci seluruh akun. Password yang benar
+tetap ditolak selama masa tunggu — kalau tidak, jedanya bisa diabaikan begitu saja.
+Alamatnya diambil dari soket mentah, bukan `req.ip`: pembatas yang bisa dilewati dengan
+mengarang header `X-Forwarded-For` tidak membatasi apa pun.
+Lihat [`services/loginThrottle.js`](backend/src/services/loginThrottle.js).
+
+**Manifes aplikasi disusun, bukan berkas statis.** Ikon dan warnanya diambil dari
+pengaturan klinik, sehingga klinik mana pun yang memasang ini mendapat nama dan logonya
+sendiri di taskbar tanpa menyunting apa pun. Logo klinik hampir tidak pernah persegi
+sementara sistem operasi menuntut ikon persegi, jadi ikonnya disusun sebagai SVG yang
+menempatkan logo di tengah bidang persegi — tanpa pustaka pengolah gambar sama sekali.
+Lihat [`controllers/branding.controller.js`](backend/src/controllers/branding.controller.js).
+
 ---
 
 ## Teknologi
@@ -179,7 +194,7 @@ sudah berisi data dan mengatakannya terus terang, bukan gagal di tengah jalan.
 ## Dokumentasi
 
 - [`docs/panduan-lengkap.md`](docs/panduan-lengkap.md) — panduan teknis lengkap:
-  konfigurasi, pemasangan jaringan lokal untuk dua komputer, pindah ke MySQL,
+  konfigurasi, pemasangan di klinik, akses jarak jauh lewat Tailscale, pindah ke MySQL,
   pencadangan dan pemulihan, serta rujukan API.
 
 ---
