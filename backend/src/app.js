@@ -14,6 +14,8 @@ import userRoutes from './routes/users.routes.js';
 import settingsRoutes from './routes/settings.routes.js';
 import verifyRoutes from './routes/verify.routes.js';
 import brandingRoutes from './routes/branding.routes.js';
+import { manifest } from './controllers/branding.controller.js';
+import { wrap } from './middleware/asyncHandler.js';
 
 export function createApp() {
   const app = express();
@@ -77,6 +79,10 @@ export function createApp() {
   app.use('/api/settings', settingsRoutes);
   app.use('/api/verify', verifyRoutes);
   app.use('/api/branding', brandingRoutes);
+
+  // Manifes wajib berada di akar, bukan di bawah /api: cakupan aplikasi ("/")
+  // tidak boleh lebih luas daripada letak manifesnya sendiri.
+  app.get('/manifest.webmanifest', wrap(manifest));
 
   // Sajikan frontend dari server yang sama agar cukup satu proses saat dipakai di klinik.
   // `no-cache` memaksa browser memvalidasi ulang tiap muat, sehingga staf tidak
