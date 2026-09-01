@@ -33,7 +33,7 @@ export const SETTING_DEFS = {
     fallback: () => 'Kwitansi ini dicetak oleh sistem dan sah tanpa tanda tangan basah.',
   },
   signer_name: { label: 'Nama penanda tangan', max: 120, fallback: () => '' },
-  signer_title: { label: 'Jabatan penanda tangan', max: 80, fallback: () => 'Petugas Kasir' },
+  signer_title: { label: 'Jabatan penanda tangan', max: 80, fallback: () => 'Dokter Gigi' },
 
   qr_enabled: { label: 'Tampilkan QR verifikasi', max: 1, fallback: () => '1' },
   qr_base_url: { label: 'URL dasar verifikasi QR', max: 200, fallback: () => '' },
