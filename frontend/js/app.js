@@ -2,7 +2,7 @@
 
 import { api, auth } from './api.js';
 import { el, h, toastErr } from './ui.js';
-import { applyBrand } from './brand.js';
+import { applyBrand, applyLogo } from './brand.js';
 
 import dashboard from './views/dashboard.js';
 import receiptNew from './views/receipt-new.js';
@@ -23,6 +23,7 @@ export const ctx = {
       const res = await api.get('/settings');
       ctx.clinic = res.data;
       applyBrand(res.data);
+      applyLogo(res.data);
       const name = res.data?.clinic_name;
       if (name) {
         el('#brandName').textContent = name;

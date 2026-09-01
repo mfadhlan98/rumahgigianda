@@ -67,3 +67,45 @@ export function applyBrand(settings) {
   // bila klinik memilih warna yang muda.
   root.setProperty('--on-brand', contrast(utama, '#ffffff') >= 4.5 ? '#ffffff' : '#16181a');
 }
+
+/**
+ * Pasang logo klinik di setiap tempat yang menampilkannya, plus ikon tab peramban.
+ *
+ * Elemen penampung ditandai `data-logo-slot`; bila klinik belum mengunggah logo,
+ * lambang bawaan sistem dibiarkan apa adanya.
+ */
+export function applyLogo(settings) {
+  if (!settings?.has_logo) return;
+
+  const sumber = '/api/branding/logo';
+
+  // Ikon tab peramban
+  const ikon = document.querySelector('link[rel="icon"]') || document.createElement('link');
+  ikon.rel = 'icon';
+  ikon.type = 'image/png';
+  ikon.href = sumber;
+  if (!ikon.parentNode) document.head.append(ikon);
+
+  for (const kotak of document.querySelectorAll('[data-logo-slot]')) {
+    const jenis = kotak.dataset.logoSlot;
+    const img = new Image();
+    img.src = sumber;
+    img.alt = settings.clinic_name || 'Logo klinik';
+
+    if (jenis === 'sidebar') {
+      // Logo klinik umumnya berwarna gelap; sidebar berlatar warna merek yang
+      // juga gelap. Diberi alas terang agar lambangnya tidak lenyap.
+      kotak.style.cssText = 'width:38px;height:38px;flex:none;display:grid;place-items:center;'
+        + 'background:#fff;border-radius:9px;padding:3px;overflow:hidden';
+      img.style.cssText = 'max-width:100%;max-height:100%;object-fit:contain';
+    } else {
+      kotak.style.cssText = 'width:auto;height:76px;background:transparent;'
+        + 'display:flex;align-items:center;margin-bottom:16px';
+      img.style.cssText = 'max-height:76px;max-width:190px;object-fit:contain';
+    }
+
+    kotak.innerHTML = '';
+    kotak.removeAttribute('aria-hidden');
+    kotak.append(img);
+  }
+}

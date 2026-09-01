@@ -1,6 +1,6 @@
 import { api, auth, ApiError } from './api.js';
 import { el, applyErrors, clearErrors, toast } from './ui.js';
-import { applyBrand } from './brand.js';
+import { applyBrand, applyLogo } from './brand.js';
 
 const form = el('#loginForm');
 const btn = el('#submitBtn');
@@ -21,18 +21,7 @@ const btn = el('#submitBtn');
     // Petunjuk akun bawaan hanya relevan selama passwordnya memang belum diganti.
     if (!b.default_admin) el('#firstRunHint').remove();
 
-    if (b.has_logo) {
-      const kotak = el('.login-logo');
-      kotak.innerHTML = '';
-      kotak.style.background = 'transparent';
-      kotak.style.width = 'auto';
-      kotak.style.height = '76px';
-      const img = new Image();
-      img.src = '/api/branding/logo';
-      img.alt = b.clinic_name || 'Logo klinik';
-      img.style.cssText = 'max-height:76px;max-width:190px;object-fit:contain';
-      kotak.append(img);
-    }
+    applyLogo(b);
   } catch {
     /* Identitas klinik hanya mempercantik; kegagalan tidak boleh
        menghalangi siapa pun untuk login. */
