@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Verifikasi Kwitansi</title>
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="verify-page">
+
+  <main class="verify-card" id="card">
+    <div class="verify-status" style="background:var(--brand)">
+      <h1>Memeriksa kwitansi…</h1>
+      <p>Mohon tunggu sebentar.</p>
+    </div>
+  </main>
+
+  <script type="module">
+    import { h, fmtRupiah, fmtTanggal, esc } from './js/ui.js';
+
+    const params = new URLSearchParams(location.search);
+    const no = params.get('no');
+    const sig = params.get('sig');
+    const card = document.getElementById('card');
+
+    function paint(kind, title, message, rows) {
+      card.innerHTML = '';
+      card.append(h('div', { class: `verify-status ${kind}` },
+        h('h1', {}, title),
+        h('p', {}, message)));
+
+      const body = h('div', { class: 'verify-body' });
+      if (rows) {
+        const dl = h('dl', { class: 'kv' });
+        for (const [k, v] of rows) dl.append(h('dt', {}, k), h('dd', {}, v));
+        body.append(dl);
+      }
+      body.append(h('p', { class: 'muted small mt-2 mb-0' },
+        'Halaman ini hanya menampilkan data ringkas untuk menjaga kerahasiaan pasien. ' +
+        'Bila ada keraguan, hubungi klinik secara langsung.'));
+      card.append(body);
+    }
+
+    if (!no || !sig) {
+      paint('bad', 'Tautan tidak lengkap',
+        'Pindai ulang QR pada kwitansi, atau buka tautan verifikasi secara utuh.');
+    } else {
+      try {
+        const res = await fetch(`/api/verify?no=${encodeURIComponent(no)}&sig=${encodeURIComponent(sig)}`);
+        const data = await res.json();
+
+        if (!data.valid) {
+          paint('bad', 'Kwitansi tidak dikenali', data.message ||
+            'Nomor kwitansi atau kode verifikasi tidak cocok dengan catatan klinik.');
+        } else {
+          const d = data.data;
+          paint(
+            data.status === 'void' ? 'void' : 'ok',
+            data.status === 'void' ? 'Kwitansi dibatalkan' : 'Kwitansi terverifikasi',
+            data.message,
+            [
+              ['Klinik', d.clinic_name],
+              ['No. Kwitansi', d.receipt_no],
+              ['Tanggal', fmtTanggal(d.receipt_date)],
+              ['Pasien', d.patient_name],
+              ['No. Rekam Medis', d.medical_record_no],
+              ['Jenis Perawatan', d.treatment_type || '—'],
+              ['Total', fmtRupiah(d.total)],
+            ],
+          );
+        }
+      } catch {
+        paint('bad', 'Gagal memeriksa',
+          'Tidak dapat menghubungi server klinik. Periksa koneksi internet Anda lalu coba lagi.');
+      }
+    }
+  </script>
+</body>
+</html>

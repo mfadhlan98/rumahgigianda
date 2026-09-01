@@ -1,0 +1,46 @@
+# =====================================================================
+#  Data klinik yang TIDAK BOLEH ikut ke repositori publik.
+#
+#  Berkas-berkas di bawah memuat identitas klinik sungguhan: alamat,
+#  nomor telepon, nomor rekening, logo, hash kata sandi, dan arsip
+#  kwitansi pasien. Semuanya milik klien, bukan bagian dari kode.
+# =====================================================================
+
+# Dependensi
+node_modules/
+
+# Rahasia
+.env
+.env.local
+*.pem
+*.key
+
+# Database & cadangan — memuat profil klinik, akun, dan seluruh kwitansi
+backend/data/
+backend/backup/
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+
+# Logo klinik yang sedang dipakai
+backend/storage/
+
+# Aset merek milik klien
+aset-merek/
+
+# Hasil cetak — memuat alamat, telepon, dan nomor rekening klinik
+hasil-uji-cetak/
+backend/pratinjau-*.pdf
+*.zip
+
+# Font kustom yang lisensinya belum tentu boleh disebarkan
+backend/assets/fonts/*.ttf
+backend/assets/fonts/*.otf
+backend/assets/fonts/*.woff
+backend/assets/fonts/*.woff2
+
+# Lain-lain
+*.log
+.DS_Store
+Thumbs.db
