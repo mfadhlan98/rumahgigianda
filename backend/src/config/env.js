@@ -52,13 +52,18 @@ export const env = {
     address: process.env.CLINIC_ADDRESS || '',
     phone: process.env.CLINIC_PHONE || '',
     email: process.env.CLINIC_EMAIL || '',
-    logo: resolve(process.env.CLINIC_LOGO || './storage/logo.png'),
   },
+
+  /* Satu-satunya akar untuk berkas yang ditulis aplikasi: logo klinik dan
+     arsip kwitansi. Wajib bisa dialihkan lewat STORAGE_DIR — pengujian yang
+     memakai database terpisah tetap akan menimpa logo klinik sungguhan bila
+     jalur ini dipatok, karena logo disimpan sebagai berkas, bukan di database. */
+  storageDir: resolve(process.env.STORAGE_DIR || './storage'),
 
   receipt: {
     prefix: process.env.RECEIPT_PREFIX || 'KGM',
     seqPad: int(process.env.RECEIPT_SEQ_PAD, 4),
-    storageDir: resolve('./storage/receipts'),
+    storageDir: resolve(path.join(process.env.STORAGE_DIR || './storage', 'receipts')),
   },
 
   seed: {

@@ -7,7 +7,7 @@ import { badRequest, notFound } from '../utils/httpError.js';
 import { isHex } from '../utils/color.js';
 import { UKURAN_CETAK } from '../services/pdf.js';
 
-const LOGO_DIR = path.join(env.receipt.storageDir, '..');
+const LOGO_DIR = env.storageDir;
 const MAX_LOGO_BYTES = 3 * 1024 * 1024;
 
 /** Tanda tangan berkas gambar — jangan percaya ekstensi atau mime dari klien. */
