@@ -97,12 +97,28 @@ $peramban = @(
   "${env:ProgramFiles(x86)}\Microsoft\Edge\Application\msedge.exe"
 ) | Where-Object { Test-Path $_ } | Select-Object -First 1
 
-# -WindowStyle Normal wajib ditulis eksplisit. Pintasan menjalankan berkas ini
-# lewat PowerShell tersembunyi, dan proses anak mewarisi status "sembunyikan
-# jendela" itu — peramban ikut terbuka tanpa jendela yang terlihat, sehingga
-# pengguna mengklik ikon lalu merasa tidak terjadi apa-apa.
+# Dua hal yang wajib, dan keduanya pernah membuat klik ikon terasa tidak
+# melakukan apa-apa:
+#
+#   --user-data-dir  Tanpa ini, permintaan --app diserahkan ke Edge/Chrome yang
+#                    sudah berjalan dengan profil pribadi pengguna, dan sering
+#                    diabaikan begitu saja. Profil terpisah memaksa jendela
+#                    aplikasi dibuat sendiri. Sekaligus memisahkan aplikasi
+#                    klinik dari riwayat, bookmark, dan tab pribadi pengguna.
+#
+#   -WindowStyle     Pintasan menjalankan berkas ini lewat PowerShell
+#     Normal         tersembunyi, dan proses anak mewarisi status "sembunyikan
+#                    jendela" itu bila tidak ditulis eksplisit.
+$profil = Join-Path $env:LOCALAPPDATA 'KwitansiKlinik\peramban'
+
 if ($peramban) {
-  Start-Process -FilePath $peramban -ArgumentList "--app=$Alamat" -WindowStyle Normal
+  $arg = @(
+    "--user-data-dir=`"$profil`"",
+    "--app=$Alamat",
+    '--no-first-run',
+    '--no-default-browser-check'
+  )
+  Start-Process -FilePath $peramban -ArgumentList $arg -WindowStyle Normal
 } else {
   # Tidak ada Chrome/Edge — buka dengan peramban bawaan apa pun itu.
   Start-Process $Alamat -WindowStyle Normal
