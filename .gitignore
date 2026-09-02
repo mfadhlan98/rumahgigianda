@@ -44,3 +44,7 @@ backend/assets/fonts/*.woff2
 *.log
 .DS_Store
 Thumbs.db
+
+# Kwitansi contoh apa pun yang dirender dari profil klinik sungguhan.
+# Pola "pratinjau-*.pdf" saja pernah kebobolan oleh berkas bernama lain.
+backend/*.pdf

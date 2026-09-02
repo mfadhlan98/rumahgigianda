@@ -234,7 +234,7 @@ async function mount(root, { actions }) {
   function addRow(preset = {}) {
     rows.push({
       service_item_id: preset.service_item_id ?? null,
-      description: preset.description ?? '',
+      description: tanpaRentang(preset.description),
       category: preset.category ?? 'tindakan',
       qty: preset.qty ?? 1,
       unit_price: preset.unit_price ?? 0,
@@ -246,6 +246,21 @@ async function mount(root, { actions }) {
    * Tanpa ini, baris kosong bawaan akan tertinggal di atas dan harus
    * dihapus manual oleh kasir.
    */
+  /**
+   * Buang keterangan rentang harga dari nama tarif sebelum masuk ke kwitansi.
+   *
+   * Tarif yang harganya berupa rentang diberi nama seperti
+   * "Penambalan Sederhana Gigi Belakang — 250–350rb". Rentang itu ada untuk
+   * kasir: mengingatkan bahwa harganya harus disesuaikan, bukan diterima apa
+   * adanya. Pasien tidak perlu melihatnya — dan tidak boleh, karena membaca
+   * "250–350rb" di sebelah tagihan Rp300.000 hanya menimbulkan pertanyaan.
+   *
+   * Yang dibuang hanya potongan di ujung yang benar-benar berbentuk rentang
+   * harga, sehingga nama seperti "Behel Luar — Kontrol" tetap utuh.
+   */
+  const RENTANG_DI_UJUNG = /\s+—\s+[\d.,]+(?:rb|jt)?\s*[–-]\s*[\d.,]+(?:rb|jt)\s*$/;
+  const tanpaRentang = (nama) => String(nama || '').replace(RENTANG_DI_UJUNG, '');
+
   function fillOrAddRow(preset) {
     const slot = rows.findIndex(isRowEmpty);
     if (slot === -1) {
@@ -254,7 +269,7 @@ async function mount(root, { actions }) {
     }
     rows[slot] = {
       service_item_id: preset.service_item_id ?? null,
-      description: preset.description ?? '',
+      description: tanpaRentang(preset.description),
       category: preset.category ?? 'tindakan',
       qty: preset.qty ?? 1,
       unit_price: preset.unit_price ?? 0,
@@ -281,7 +296,9 @@ async function mount(root, { actions }) {
       desc.addEventListener('input', () => {
         row.description = desc.value;
         // Isi harga otomatis bila kasir mengetik persis nama layanan dari daftar tarif.
-        const match = layanan.find((s) => s.name === desc.value);
+        // Cocokkan dengan nama penuh maupun nama yang sudah dibersihkan dari
+        // rentang, supaya pengisian otomatis tetap jalan setelah pembersihan.
+        const match = layanan.find((s) => s.name === desc.value || tanpaRentang(s.name) === desc.value);
         if (match) {
           row.service_item_id = match.id;
           row.category = match.category;
@@ -385,7 +402,7 @@ async function mount(root, { actions }) {
     if (chosen) {
       fillOrAddRow({
         service_item_id: chosen.id,
-        description: chosen.name,
+        description: tanpaRentang(chosen.name),
         category: chosen.category,
         unit_price: chosen.default_price,
       });
