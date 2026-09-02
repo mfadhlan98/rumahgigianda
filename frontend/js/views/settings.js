@@ -36,7 +36,9 @@ async function mount(root, { ctx }) {
       field('Telepon', input('clinic_phone', s.clinic_phone, admin)),
       field('Email', input('clinic_email', s.clinic_email, admin)),
       field('Website', input('clinic_website', s.clinic_website, admin))),
-    field('NPWP', input('clinic_npwp', s.clinic_npwp, admin), 'Kosongkan bila tidak perlu dicetak.'),
+    h('div', { class: 'grid cols-2' },
+      field('Nomor SIP (izin praktik)', input('clinic_license', s.clinic_license, admin), 'Tercetak di kop, tepat di bawah nama dokter.'),
+      field('NPWP', input('clinic_npwp', s.clinic_npwp, admin), 'Kosongkan bila tidak perlu dicetak.')),
 
     h('fieldset', {}, h('legend', {}, 'Rekening & Tujuan Pembayaran'),
       field('Daftar rekening',

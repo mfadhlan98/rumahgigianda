@@ -23,6 +23,11 @@ export const SETTING_DEFS = {
     fallback: () => '',
   },
 
+  /* Nomor Surat Izin Praktik. Diberi kolom sendiri, bukan dititipkan ke
+     tagline atau NPWP: nomor ini menerangkan izin praktik dokternya, bukan
+     identitas pajak klinik, dan tempatnya di kop tepat di bawah nama dokter. */
+  clinic_license: { label: 'Nomor SIP (izin praktik)', max: 120, fallback: () => '' },
+
   brand_color: { label: 'Warna utama merek', max: 7, fallback: () => '#0f3d3e' },
   brand_accent: { label: 'Warna aksen merek', max: 7, fallback: () => '#14807f' },
 

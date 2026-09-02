@@ -156,6 +156,15 @@ function drawPaper(doc, r, s, F, preset, qr, C) {
 
   doc.font(F.regular).fontSize(fs_(8)).fillColor(C.muted);
   if (s.clinic_tagline) doc.text(s.clinic_tagline, textX, doc.y + 1, { width: headTextW });
+
+  // Nomor izin praktik menempel pada nama dokternya, bukan pada alamat klinik,
+  // jadi tempatnya tepat di bawah baris tagline yang memuat nama itu.
+  if (s.clinic_license) {
+    doc.font(F.medium).fontSize(fs_(7.4)).fillColor(C.muted)
+      .text(s.clinic_license, textX, doc.y + 1, { width: headTextW });
+    doc.font(F.regular).fontSize(fs_(8));
+  }
+
   if (s.clinic_address) doc.text(s.clinic_address, textX, doc.y + 2, { width: headTextW });
   const contact = [s.clinic_phone, s.clinic_email, s.clinic_website].filter(Boolean).join('  ·  ');
   if (contact) doc.text(contact, textX, doc.y + 1, { width: headTextW });
@@ -525,6 +534,8 @@ function drawThermal(doc, r, s, F, qr) {
 
   doc.font(F.bold).fontSize(10).fillColor('#000000').text(s.clinic_name, center);
   doc.font(F.regular).fontSize(6.4);
+  if (s.clinic_tagline) doc.text(s.clinic_tagline, center);
+  if (s.clinic_license) doc.text(s.clinic_license, center);
   if (s.clinic_address) doc.text(s.clinic_address, center);
   if (s.clinic_phone) doc.text(s.clinic_phone, center);
   rule();
