@@ -4,11 +4,12 @@ A receipt and payment-record system built for a real dental clinic in West Sumat
 Indonesia. It replaces a paper receipt book: the cashier issues a numbered receipt,
 prints it, and every transaction stays searchable and auditable.
 
-Runs entirely on the clinic's own computers. No internet required, no monthly fees,
-no patient data leaving the building.
+Runs entirely on the clinic's own computer. Ships as a Windows installer — one
+`.exe`, no runtime to install first — with no internet required, no monthly fees,
+and no patient data leaving the building.
 
 > **Status** — in production preparation for *Rumah Gigi Anda*, Sijunjung.
-> Built end to end: backend, frontend, PDF engine, deployment scripts, and
+> Built end to end: backend, frontend, PDF engine, Windows installer, and
 > the operating manuals the clinic staff actually use.
 
 [Baca dalam Bahasa Indonesia →](README.id.md)
@@ -110,6 +111,19 @@ operating systems demand square icons, so the icon is composed as an SVG that ce
 the logo on a square field — no image library involved.
 See [`controllers/branding.controller.js`](backend/src/controllers/branding.controller.js).
 
+**The desktop app is a shell, not a fork.** The Electron main process starts the
+same Express server the browser version uses, then opens a window on it. Nothing in
+the backend knows it is running inside Electron: every path it needs (`SQLITE_FILE`,
+`STORAGE_DIR`, `BACKUP_DIR`, `JWT_SECRET`) is an environment variable, so the
+shell points them at the per-user data folder and imports the server as-is. Closing
+the window hides it to the tray instead of quitting — the server keeps serving the
+network, which is what lets the doctor read the day's summary from home after the
+clinic PC's user has "closed" the app. The daily backup scheduler, auto-start entry,
+and JWT secret generation moved into the shell, so a clinic installs one file and
+never runs a script. The archive is not packed into an `asar` because `node:sqlite`
+needs a real file path for the database and PDFKit needs real font files.
+See [`desktop/main.cjs`](desktop/main.cjs).
+
 ---
 
 ## Tech stack
@@ -122,8 +136,10 @@ See [`controllers/branding.controller.js`](backend/src/controllers/branding.cont
 | PDF | PDFKit + embedded Inter | PDF/A-3b, real text, OCR-readable |
 | Frontend | Vanilla ES modules | No build step, no framework churn |
 | Auth | JWT + scrypt | scrypt is in Node's standard library |
+| Desktop | Electron + electron-builder | Bundles Node 24 so the clinic PC installs nothing else |
 
-Eight runtime dependencies in total. No bundler, no ORM, no UI framework.
+Eight runtime dependencies in the server. No bundler, no ORM, no UI framework.
+Electron is a build-time concern only — the browser version stays fully usable.
 
 ---
 
@@ -143,7 +159,10 @@ backend/
 frontend/
   css/            single stylesheet, token-driven
   js/views/       one file per screen
-skrip-windows/    firewall, auto-start, backup scheduling
+desktop/
+  main.cjs        Electron shell: window, tray, backup scheduler, auto-start
+  electron-builder.config.cjs
+skrip-windows/    firewall, auto-start, backup — for running without the installer
 docs/             full technical guide (Indonesian)
 ```
 
@@ -170,6 +189,21 @@ To see a printable receipt without issuing a real one:
 npm run pratinjau -- a5land thermal80
 ```
 
+### Building the Windows installer
+
+```bash
+cd desktop
+npm install
+npm run bangun
+```
+
+Produces `desktop/dist/Pasang-Kwitansi-Klinik-<version>.exe`, a per-user NSIS
+installer (~115 MB, most of it Chromium). It creates desktop and Start-menu
+shortcuts, registers auto-start, and keeps all clinic data in
+`%APPDATA%Kwitansi Klinik` — which survives both upgrades and uninstall.
+`npm start` in the same folder runs the shell against the source tree with a
+separate dev data folder.
+
 ---
 
 ## Testing
@@ -178,10 +212,11 @@ npm run pratinjau -- a5land thermal80
 npm test
 ```
 
-69 end-to-end checks against a running server: authentication, role boundaries,
-input validation, money arithmetic, receipt numbering, PDF generation in all four
-sizes (including embedded-font and PDF/A metadata assertions), logo upload, QR
-verification, reporting, and CSV export.
+81 end-to-end checks against a running server: authentication, role boundaries,
+login throttling, input validation, money arithmetic, receipt numbering, PDF
+generation in all six sizes (including embedded-font and PDF/A metadata assertions),
+logo upload, QR verification, reporting, and CSV export. The same suite passes
+against the packaged Electron build, since it only talks HTTP.
 
 The suite asserts exact totals, so it refuses to run against a non-empty database
 and says so rather than failing halfway.

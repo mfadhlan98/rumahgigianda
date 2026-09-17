@@ -25,13 +25,19 @@ sistem-kwitansi-klinik/
 ├── frontend/         antarmuka pengguna (HTML/CSS/JavaScript, tanpa build)
 │   ├── css/
 │   └── js/views/         satu berkas per halaman
-├── skrip-windows/    firewall, jalan otomatis, jadwal pencadangan
-└── mulai-server.bat  penyalaan sekali klik untuk Windows
+├── desktop/          cangkang Electron + konfigurasi installer Windows
+├── skrip-windows/    firewall, jalan otomatis, jadwal pencadangan (jalur manual)
+└── mulai-server.bat  penyalaan sekali klik untuk Windows (jalur manual)
 ```
 
 ---
 
 ## 1. Menjalankan aplikasi
+
+Ada dua cara memakai aplikasi ini. **Untuk komputer klinik, pakai installer**
+(bagian 6) — satu berkas `.exe`, tidak perlu Node.js, tidak perlu `.env`.
+Bagian ini membahas cara menjalankan dari kode sumber, untuk pengembangan atau
+pemasangan manual.
 
 ### Kebutuhan
 
@@ -223,6 +229,9 @@ adapter di `backend/src/db/`.
   Secret ini juga menandatangani kode verifikasi QR pada kwitansi, sehingga
   menggantinya membuat kode pada kwitansi yang sudah tercetak tidak lagi cocok.
   **Tetapkan sekali di awal, sebelum kwitansi pertama terbit.**
+  Versi installer membangkitkannya sendiri pada peluncuran pertama dan
+  menyimpannya di `konfigurasi.json` — peringatan yang sama berlaku untuk
+  berkas itu.
 * **Ganti password akun `admin`** dari nilai bawaan lewat
   **Pengaturan → Ganti Password**, lalu serahkan akunnya ke pemilik klinik.
 * Bila suatu saat diakses lewat internet, taruh di belakang HTTPS
@@ -243,20 +252,67 @@ Komputer klinik ── menjalankan server + menyimpan database
                     buka lewat ikon "Kwitansi Klinik" di desktop
 ```
 
-Pengguna tidak pernah mengetik alamat. Skrip `4-buat-pintasan.ps1` memasang ikon
-berlogo klinik yang menyalakan server bila belum hidup, lalu membuka aplikasinya
-sebagai jendela tersendiri — tanpa kolom alamat dan tanpa jendela konsol.
+### Installer Windows (cara yang disarankan)
 
-### Skrip pemasangan
+Bangun installer dari folder `desktop/`:
 
-Folder `skrip-windows/` berisi empat skrip PowerShell:
+```bash
+cd desktop
+npm install
+npm run bangun
+```
+
+Hasilnya `desktop/dist/Pasang-Kwitansi-Klinik-<versi>.exe` (±115 MB). Berkas
+itu satu-satunya yang dibawa ke klinik: komputer klinik tidak perlu Node.js,
+tidak perlu `.env`, dan tidak perlu internet. Klik dua kali → Next → Install.
+
+Yang dulu dikerjakan skrip kini sudah di dalam aplikasi:
+
+| Dulu | Sekarang |
+| ---- | -------- |
+| `2-pasang-autostart.ps1` | Terdaftar otomatis; bisa dimatikan dari menu ikon baki |
+| `3-jadwalkan-backup.ps1` | Penjadwal di dalam aplikasi: sekali sehari, dan segera saat pertama menyala |
+| `4-buat-pintasan.ps1` | Pintasan desktop dan Start menu dibuat installer |
+| `JWT_SECRET` di `.env` | Dibangkitkan sekali pada peluncuran pertama |
+
+Hanya firewall yang masih meminta izin: saat pertama menyala Windows bertanya,
+centang **Private networks** lalu **Allow access**. Bila terlewat, jalankan
+`skrip-windows\1-izinkan-firewall.ps1` sebagai administrator.
+
+**Menutup jendela tidak mematikan aplikasi** — ia turun ke ikon di baki sistem
+dan servernya terus melayani jaringan. Itu yang memungkinkan pemilik klinik
+membuka rekap dari rumah sepulang praktik. Untuk benar-benar berhenti, klik kanan
+ikon baki → **Keluar**.
+
+Seluruh data ada di `%APPDATA%\Kwitansi Klinik\`:
+
+```
+data\klinik.db        database
+storage\              logo
+backup\               cadangan harian
+konfigurasi.json      port, kunci JWT, jalankan-saat-boot, ALLOWED_IPS
+```
+
+Folder ini tidak disentuh saat aplikasi diperbarui maupun dicopot lewat
+*Apps & features*. Pembaruan cukup dengan menjalankan installer versi baru di
+atas yang lama.
+
+Untuk memulihkan cadangan pada versi installer: **Keluar** dari ikon baki, ganti
+`data\klinik.db` dengan berkas cadangan, hapus `klinik.db-wal` dan
+`klinik.db-shm` bila ada, lalu buka aplikasinya lagi.
+
+### Pemasangan manual (tanpa installer)
+
+Bila lebih suka menjalankan dari kode sumber — misalnya di Linux, atau untuk
+mengontrol tiap bagian sendiri — folder `skrip-windows/` berisi empat skrip
+PowerShell yang mengerjakan hal yang sama secara terpisah:
 
 | Skrip | Fungsi | Perlu admin |
 | ----- | ------ | ----------- |
 | `1-izinkan-firewall.ps1` | Membuka port 4000 untuk jaringan Private saja | Ya |
 | `2-pasang-autostart.ps1` | Server menyala sendiri saat komputer dihidupkan | Tidak |
 | `3-jadwalkan-backup.ps1` | Pencadangan otomatis tiap hari pukul 20:00 | Tidak |
-| `4-buat-pintasan.ps1` | Ikon desktop berlogo klinik | Tidak |
+| `4-buat-pintasan.ps1` | Ikon desktop berlogo klinik yang membuka aplikasi sebagai jendela tersendiri | Tidak |
 
 Skrip 2 dan 3 punya opsi `-Hapus` untuk membatalkannya. Jam pencadangan bisa
 diubah, misalnya `.\3-jadwalkan-backup.ps1 -Jam 21:30`.
@@ -264,10 +320,10 @@ diubah, misalnya `.\3-jadwalkan-backup.ps1 -Jam 21:30`.
 ### Komputer tambahan
 
 Bila klinik memakai lebih dari satu komputer, yang lain cukup membuka
-`http://<ip-komputer-server>:4000` — tidak ada yang perlu dipasang. Jalankan
-`4-buat-pintasan.ps1 -Alamat http://<ip>:4000` di komputer itu supaya
-penggunanya juga tidak perlu mengetik alamat. Agar alamatnya tidak berubah-ubah,
-kunci IP komputer server lewat **DHCP reservation** di router.
+`http://<ip-komputer-server>:4000` di peramban — **jangan memasang installer
+di komputer kedua**, karena itu akan membuat database terpisah. Alamatnya bisa
+disalin dari menu ikon baki di komputer server. Agar alamatnya tidak
+berubah-ubah, kunci IP komputer server lewat **DHCP reservation** di router.
 
 ### Akses dari luar klinik
 
@@ -283,7 +339,8 @@ diperlukan lagi. Komputer klinik harus tetap menyala agar bisa dihubungi.
 
 Firewall sudah membuat aplikasi tidak terjangkau dari luar jaringan klinik.
 Untuk lapisan kedua — agar perangkat tamu yang ikut Wi-Fi klinik pun tidak bisa
-membukanya — isi `ALLOWED_IPS` di `.env`:
+membukanya — isi `ALLOWED_IPS` di `.env` (atau `allowedIps` di
+`konfigurasi.json` pada versi installer):
 
 ```ini
 # hanya komputer tertentu
@@ -319,7 +376,8 @@ sebagai `login_blocked`.
 
 ## 7. Pencadangan dan pemulihan
 
-Seluruh arsip kwitansi berada di satu berkas: `backend/data/klinik.db`.
+Seluruh arsip kwitansi berada di satu berkas: `backend/data/klinik.db`
+(versi installer: `%APPDATA%\Kwitansi Klinik\data\klinik.db`).
 Kalau berkas itu hilang, semuanya hilang.
 
 ```bash
@@ -328,9 +386,12 @@ npm run restore -- --latest   # pulihkan dari cadangan terbaru
 npm run restore -- backup/klinik-20260831-2310.db
 ```
 
-Cadangan disimpan di `backend/backup/` dengan nama berisi tanggal dan jam.
-Yang lebih tua dari 30 hari dibuang sendiri (atur lewat `BACKUP_KEEP_DAYS`),
-kecuali cadangan terbaru yang tidak pernah dihapus.
+Cadangan disimpan di `backend/backup/` (versi installer:
+`%APPDATA%\Kwitansi Klinik\backup\`, juga bisa dibuka dari menu ikon baki)
+dengan nama berisi tanggal dan jam. Yang lebih tua dari 30 hari dibuang sendiri
+(atur lewat `BACKUP_KEEP_DAYS`), kecuali cadangan terbaru yang tidak pernah
+dihapus. Pada versi installer, pencadangan berjalan otomatis sekali sehari
+tanpa penjadwal Windows.
 
 Pencadangan memakai `VACUUM INTO`, yang menghasilkan salinan utuh **tanpa perlu
 menghentikan server** — aman dijalankan di tengah jam praktik.

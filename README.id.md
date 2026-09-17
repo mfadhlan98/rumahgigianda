@@ -5,11 +5,12 @@ untuk sebuah klinik sungguhan di Sumatera Barat. Menggantikan buku kwitansi:
 kasir menerbitkan kwitansi bernomor, mencetaknya, dan setiap transaksi tetap bisa
 dicari serta ditelusuri.
 
-Berjalan sepenuhnya di komputer klinik sendiri. Tanpa internet, tanpa biaya bulanan,
-dan data pasien tidak pernah keluar dari klinik.
+Berjalan sepenuhnya di komputer klinik sendiri. Dikirim sebagai installer Windows —
+satu `.exe`, tanpa runtime yang harus dipasang lebih dulu — tanpa internet, tanpa
+biaya bulanan, dan data pasien tidak pernah keluar dari klinik.
 
 > **Status** — dalam persiapan pemakaian di *Rumah Gigi Anda*, Sijunjung.
-> Dibangun utuh: backend, antarmuka, mesin cetak PDF, skrip pemasangan, sampai
+> Dibangun utuh: backend, antarmuka, mesin cetak PDF, installer Windows, sampai
 > panduan yang benar-benar dipakai staf klinik.
 
 [Read in English →](README.md)
@@ -112,6 +113,20 @@ sementara sistem operasi menuntut ikon persegi, jadi ikonnya disusun sebagai SVG
 menempatkan logo di tengah bidang persegi — tanpa pustaka pengolah gambar sama sekali.
 Lihat [`controllers/branding.controller.js`](backend/src/controllers/branding.controller.js).
 
+**Aplikasi desktopnya cangkang, bukan cabang kode.** Proses utama Electron menyalakan
+server Express yang sama persis dengan versi peramban, lalu membuka jendela ke sana.
+Tidak ada bagian backend yang tahu ia berjalan di dalam Electron: semua lokasi yang ia
+butuhkan (`SQLITE_FILE`, `STORAGE_DIR`, `BACKUP_DIR`, `JWT_SECRET`) adalah variabel
+lingkungan, sehingga cangkang tinggal mengarahkannya ke folder data per-pengguna dan
+mengimpor server apa adanya. Menutup jendela hanya menyembunyikannya ke baki sistem,
+bukan keluar — server tetap melayani jaringan, dan itulah yang membuat dokter bisa
+membaca rekap hari itu dari rumah setelah pengguna di komputer klinik "menutup"
+aplikasinya. Penjadwal cadangan harian, entri jalankan-saat-boot, dan pembangkitan
+kunci JWT dipindah ke cangkang, jadi klinik memasang satu berkas dan tidak pernah
+menjalankan skrip. Arsipnya sengaja tidak dikemas ke `asar` karena `node:sqlite`
+butuh lokasi berkas sungguhan untuk database dan PDFKit butuh berkas font sungguhan.
+Lihat [`desktop/main.cjs`](desktop/main.cjs).
+
 ---
 
 ## Teknologi
@@ -124,8 +139,10 @@ Lihat [`controllers/branding.controller.js`](backend/src/controllers/branding.co
 | PDF | PDFKit + Inter tertanam | PDF/A-3b, teks sungguhan, terbaca OCR |
 | Frontend | ES module murni | Tanpa build, tanpa gonta-ganti framework |
 | Autentikasi | JWT + scrypt | scrypt sudah ada di pustaka standar Node |
+| Desktop | Electron + electron-builder | Membawa Node 24 sendiri, komputer klinik tidak memasang apa pun lagi |
 
-Total delapan dependensi. Tanpa bundler, tanpa ORM, tanpa framework antarmuka.
+Delapan dependensi di server. Tanpa bundler, tanpa ORM, tanpa framework antarmuka.
+Electron hanya urusan saat membangun — versi peramban tetap sepenuhnya bisa dipakai.
 
 ---
 
@@ -145,7 +162,10 @@ backend/
 frontend/
   css/            satu lembar gaya, berbasis token
   js/views/       satu berkas per halaman
-skrip-windows/    firewall, jalan otomatis, penjadwalan cadangan
+desktop/
+  main.cjs        cangkang Electron: jendela, baki, penjadwal cadangan, jalan otomatis
+  electron-builder.config.cjs
+skrip-windows/    firewall, jalan otomatis, cadangan — untuk pemasangan tanpa installer
 docs/             panduan teknis lengkap
 ```
 
@@ -173,6 +193,21 @@ Untuk melihat hasil cetak tanpa menerbitkan kwitansi sungguhan:
 npm run pratinjau -- a5land thermal80
 ```
 
+### Membangun installer Windows
+
+```bash
+cd desktop
+npm install
+npm run bangun
+```
+
+Menghasilkan `desktop/dist/Pasang-Kwitansi-Klinik-<versi>.exe`, installer NSIS
+per-pengguna (±115 MB, sebagian besar Chromium). Ia membuat pintasan desktop dan
+Start menu, mendaftarkan jalan-otomatis, dan menyimpan seluruh data klinik di
+`%APPDATA%Kwitansi Klinik` — yang tetap utuh saat aplikasi diperbarui maupun
+dicopot. `npm start` di folder yang sama menjalankan cangkang langsung dari kode
+sumber dengan folder data pengembangan terpisah.
+
 ---
 
 ## Pengujian
@@ -181,10 +216,11 @@ npm run pratinjau -- a5land thermal80
 npm test
 ```
 
-69 pemeriksaan menyeluruh terhadap server yang berjalan: autentikasi, batas peran,
-validasi masukan, perhitungan uang, penomoran kwitansi, pembuatan PDF keempat ukuran
-(termasuk pemeriksaan font tertanam dan metadata PDF/A), unggah logo, verifikasi QR,
-laporan, dan ekspor CSV.
+81 pemeriksaan menyeluruh terhadap server yang berjalan: autentikasi, batas peran,
+pembatas login, validasi masukan, perhitungan uang, penomoran kwitansi, pembuatan PDF
+keenam ukuran (termasuk pemeriksaan font tertanam dan metadata PDF/A), unggah logo,
+verifikasi QR, laporan, dan ekspor CSV. Suite yang sama lulus terhadap build Electron
+yang sudah dikemas, karena ia hanya bicara lewat HTTP.
 
 Karena menegaskan angka secara persis, suite ini menolak berjalan pada database yang
 sudah berisi data dan mengatakannya terus terang, bukan gagal di tengah jalan.
