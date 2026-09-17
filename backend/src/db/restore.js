@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import net from 'node:net';
 import path from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
-import { env, ROOT } from '../config/env.js';
+import { env } from '../config/env.js';
 
 /**
  * Memulihkan database dari berkas cadangan.
@@ -19,7 +19,7 @@ import { env, ROOT } from '../config/env.js';
  *   npm run restore -- backup/klinik-20260831-2310.db
  */
 
-const BACKUP_DIR = path.resolve(ROOT, 'backup');
+const BACKUP_DIR = env.backupDir;
 
 function serverBerjalan() {
   return new Promise((resolve) => {

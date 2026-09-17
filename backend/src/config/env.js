@@ -60,6 +60,11 @@ export const env = {
      jalur ini dipatok, karena logo disimpan sebagai berkas, bukan di database. */
   storageDir: resolve(process.env.STORAGE_DIR || './storage'),
 
+  /* Tempat salinan cadangan. Dipisahkan dari folder aplikasi karena aplikasi
+     bisa terpasang di lokasi hanya-baca seperti Program Files; cadangan yang
+     gagal ditulis diam-diam adalah cadangan yang tidak ada. */
+  backupDir: resolve(process.env.BACKUP_DIR || './backup'),
+
   receipt: {
     prefix: process.env.RECEIPT_PREFIX || 'KGM',
     seqPad: int(process.env.RECEIPT_SEQ_PAD, 4),

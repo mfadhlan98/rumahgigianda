@@ -1,0 +1,19 @@
+{
+  "name": "kwitansi-klinik-desktop",
+  "productName": "Kwitansi Klinik",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Cangkang desktop Sistem Kwitansi Klinik Gigi — membungkus server dan tampilan jadi satu aplikasi Windows.",
+  "author": "Muhammad Fadhlan",
+  "license": "MIT",
+  "main": "main.cjs",
+  "scripts": {
+    "start": "electron .",
+    "bangun": "electron-builder --win --config electron-builder.config.cjs",
+    "bangun:folder": "electron-builder --win dir --config electron-builder.config.cjs"
+  },
+  "devDependencies": {
+    "electron": "^44.4.1",
+    "electron-builder": "^26.0.0"
+  }
+}

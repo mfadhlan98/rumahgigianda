@@ -48,3 +48,10 @@ Thumbs.db
 # Kwitansi contoh apa pun yang dirender dari profil klinik sungguhan.
 # Pola "pratinjau-*.pdf" saja pernah kebobolan oleh berkas bernama lain.
 backend/*.pdf
+
+# Cangkang desktop (Electron)
+desktop/node_modules/
+desktop/dist/
+# Ikon klinik untuk installer — merek klien, sama seperti aset-merek/
+desktop/assets/icon.png
+desktop/assets/icon.ico

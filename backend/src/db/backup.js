@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
-import { env, ROOT } from '../config/env.js';
+import { env } from '../config/env.js';
 
 /**
  * Pencadangan database.
@@ -13,7 +13,7 @@ import { env, ROOT } from '../config/env.js';
  * terpadatkan tanpa perlu menghentikan server.
  */
 
-const BACKUP_DIR = path.resolve(ROOT, 'backup');
+const BACKUP_DIR = env.backupDir;
 const SIMPAN_HARI = Number.parseInt(process.env.BACKUP_KEEP_DAYS || '30', 10);
 
 function stamp(d = new Date()) {
