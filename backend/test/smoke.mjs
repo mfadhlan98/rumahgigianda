@@ -121,23 +121,29 @@ check('kode tarif duplikat ditolak 409', r.status === 409, JSON.stringify(r.json
 r = await call('GET', '/api/service-items');
 check('tarif baru muncul di daftar', r.status === 200 && r.json.data.length === 1, `n=${r.json.data?.length}`);
 
-r = await call('POST', '/api/receipts', { patient_id: patientId, payment_method: 'tunai', items: [] });
+r = await call('POST', '/api/receipts', {
+  patient_id: patientId, payment_method: 'tunai', amount_paid: 350000,
+  items: [{ description: 'Scaling', qty: 1, unit_price: 350000 }],
+});
+check('kwitansi tanpa diagnosis ditolak', r.status === 400 && !!r.json.details?.diagnosis, JSON.stringify(r.json));
+
+r = await call('POST', '/api/receipts', { patient_id: patientId, payment_method: 'tunai', diagnosis: 'K02.1', items: [] });
 check('kwitansi tanpa rincian ditolak', r.status === 400 && !!r.json.details?.items, JSON.stringify(r.json));
 
 r = await call('POST', '/api/receipts', {
-  patient_id: patientId, payment_method: 'tunai', amount_paid: 100,
+  patient_id: patientId, payment_method: 'tunai', amount_paid: 100, diagnosis: 'K02.1',
   items: [{ description: 'Scaling', qty: 1, unit_price: 350000, category: 'tindakan' }],
 });
 check('uang diterima kurang ditolak', r.status === 400 && !!r.json.details?.amount_paid, JSON.stringify(r.json));
 
 r = await call('POST', '/api/receipts', {
-  patient_id: patientId, payment_method: 'transfer',
+  patient_id: patientId, payment_method: 'transfer', diagnosis: 'K02.1',
   items: [{ description: 'Scaling', qty: 1, unit_price: 350000 }],
 });
 check('transfer tanpa nomor referensi ditolak', r.status === 400 && !!r.json.details?.payment_ref, JSON.stringify(r.json));
 
 r = await call('POST', '/api/receipts', {
-  patient_id: patientId, receipt_date: '2099-01-01', payment_method: 'tunai', amount_paid: 350000,
+  patient_id: patientId, receipt_date: '2099-01-01', payment_method: 'tunai', amount_paid: 350000, diagnosis: 'K02.1',
   items: [{ description: 'Scaling', qty: 1, unit_price: 350000 }],
 });
 check('tanggal masa depan ditolak', r.status === 400 && !!r.json.details?.receipt_date, JSON.stringify(r.json));
@@ -145,6 +151,7 @@ check('tanggal masa depan ditolak', r.status === 400 && !!r.json.details?.receip
 r = await call('POST', '/api/receipts', {
   patient_id: patientId, payment_method: 'tunai', amount_paid: 500000, discount: 25000,
   treatment_type: 'Perawatan gigi rutin', doctor_name: 'drg. Manda Prasetyo',
+  diagnosis: 'K03.6 Kalkulus gigi; K02.1 Karies dentin gigi 46',
   notes: 'Kontrol ulang 2 minggu lagi.',
   items: [
     { service_item_id: svc?.id, description: svc?.name || 'Scaling', qty: 1, unit_price: 350000, category: 'tindakan' },
@@ -164,6 +171,7 @@ r = await call('GET', `/api/receipts/${receipt.id}`);
 check('detail kwitansi menyertakan QR', r.status === 200 && String(r.json.verification?.qr || '').startsWith('data:image/png;base64,'), String(r.json.verification?.qr).slice(0, 40));
 const sig = r.json.verification.signature;
 check('3 baris rincian tersimpan', r.json.data.items.length === 3, `n=${r.json.data?.items?.length}`);
+check('diagnosis tersimpan dan ikut di detail', r.json.data.diagnosis === 'K03.6 Kalkulus gigi; K02.1 Karies dentin gigi 46', r.json.data.diagnosis);
 
 const pub = await fetch(`${BASE}/api/verify?no=${encodeURIComponent(receipt.receipt_no)}&sig=${sig}`);
 const pubJson = await pub.json();
@@ -187,6 +195,7 @@ check('laporan ringkasan', r.status === 200 && Number(r.json.totals.pendapatan) 
 
 const csv = await call('GET', '/api/reports/export.csv?date_from=2000-01-01&date_to=2099-12-31', null, true);
 check('ekspor CSV', csv.status === 200 && csv.buf.toString('utf8').includes('No Kwitansi'));
+check('CSV memuat kolom dan isi diagnosis', csv.buf.toString('utf8').includes(';Diagnosis;') && csv.buf.toString('utf8').includes('K03.6 Kalkulus gigi'));
 
 r = await call('GET', `/api/receipts?q=${encodeURIComponent('Siti')}`);
 check('cari arsip berdasarkan nama pasien', r.status === 200 && r.json.data.length === 1, `n=${r.json.data?.length}`);
@@ -232,7 +241,7 @@ r = await call('POST', `/api/receipts/${receipt.id}/void`, { reason: 'Salah inpu
 check('kasir tidak boleh membatalkan kwitansi (403)', r.status === 403);
 
 r = await call('POST', '/api/receipts', {
-  patient_id: patientId, payment_method: 'tunai', amount_paid: 50000,
+  patient_id: patientId, payment_method: 'tunai', amount_paid: 50000, diagnosis: 'Z01.2 Pemeriksaan gigi',
   items: [{ description: 'Konsultasi', qty: 1, unit_price: 50000, category: 'konsultasi' }],
 });
 check('kasir boleh membuat kwitansi', r.status === 201, JSON.stringify(r.json).slice(0, 200));
@@ -304,7 +313,7 @@ r = await call('PUT', '/api/settings', { receipt_prefix: 'KGM2' });
 check('ubah awalan nomor kwitansi', r.status === 200 && r.json.data.receipt_prefix === 'KGM2', JSON.stringify(r.json).slice(0, 150));
 
 r = await call('POST', '/api/receipts', {
-  patient_id: patientId, payment_method: 'kartu', payment_ref: '1234',
+  patient_id: patientId, payment_method: 'kartu', payment_ref: '1234', diagnosis: 'K04.0 Pulpitis',
   items: [{ description: 'Rontgen Panoramik', qty: 1, unit_price: 250000, category: 'tindakan' }],
 });
 check('awalan baru dipakai kwitansi berikutnya', String(r.json.data?.receipt_no || '').startsWith('KGM2/'), r.json.data?.receipt_no);

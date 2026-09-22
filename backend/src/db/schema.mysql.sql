@@ -50,6 +50,7 @@ CREATE TABLE IF NOT EXISTS receipts (
   period         VARCHAR(6)   NOT NULL,
   seq            INT          NOT NULL,
   treatment_type VARCHAR(200) NULL,
+  diagnosis      VARCHAR(300) NULL,
   doctor_name    VARCHAR(150) NULL,
   payment_method VARCHAR(20)  NOT NULL,
   payment_ref    VARCHAR(100) NULL,

@@ -204,6 +204,7 @@ export async function create(req, res) {
     .int('patient_id', { required: true, min: 1, label: 'Pasien' })
     .date('receipt_date', { label: 'Tanggal kwitansi' })
     .string('treatment_type', { max: 200, label: 'Jenis perawatan' })
+    .string('diagnosis', { required: true, max: 300, label: 'Diagnosis' })
     .string('doctor_name', { max: 150, label: 'Nama dokter' })
     .string('payment_method', { required: true, allow: PAYMENT_METHODS, label: 'Metode pembayaran' })
     .string('payment_ref', { max: 100, label: 'Nomor referensi' })
@@ -246,12 +247,12 @@ export async function create(req, res) {
 
         const { insertId } = await tx.run(
           `INSERT INTO receipts
-             (receipt_no, patient_id, receipt_date, period, seq, treatment_type, doctor_name,
+             (receipt_no, patient_id, receipt_date, period, seq, treatment_type, diagnosis, doctor_name,
               payment_method, payment_ref, subtotal, discount, tax, total, amount_paid, change_amount,
               notes, status, created_by)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'issued', ?)`,
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'issued', ?)`,
           [
-            no, patient.id, receiptDate, period, seq, head.treatment_type, head.doctor_name,
+            no, patient.id, receiptDate, period, seq, head.treatment_type, head.diagnosis, head.doctor_name,
             head.payment_method, head.payment_ref, money.subtotal, head.discount, head.tax,
             money.total, money.amount_paid, money.change_amount, head.notes, req.user.id,
           ],

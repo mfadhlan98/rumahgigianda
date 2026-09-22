@@ -208,6 +208,7 @@ function drawPaper(doc, r, s, F, preset, qr, C) {
     ['Telepon', r.patient_phone || '-'],
   ], C);
   const rightEnd = drawInfoCard(doc, F, k, left + colW + gap, infoTop, colW, 'DATA TRANSAKSI', [
+    ['Diagnosis', r.diagnosis || '-'],
     ['Jenis Perawatan', r.treatment_type || '-'],
     ['Dokter', r.doctor_name || '-'],
     ['Kasir', r.created_by_name || '-'],
@@ -563,6 +564,9 @@ function drawThermal(doc, r, s, F, qr) {
   kv('Pasien', r.patient_name);
   kv('No. RM', r.patient_mr_no);
   if (r.doctor_name) kv('Dokter', r.doctor_name);
+  // Diagnosis bisa panjang; ditulis sebagai paragraf, bukan baris label—nilai.
+  doc.font(F.regular).fontSize(7).fillColor('#000000').text('Diagnosis', M, doc.y, { width: w, lineBreak: false });
+  doc.font(F.medium).fontSize(7).text(r.diagnosis || '-', M, doc.y, { width: w });
   rule(true);
 
   (r.items || []).forEach((it) => {

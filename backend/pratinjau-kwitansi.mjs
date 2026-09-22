@@ -25,6 +25,7 @@ const CONTOH = {
   patient_mr_no: 'RM-000001',
   patient_phone: '0800 0000 0000',
   treatment_type: 'Pembersihan karang gigi & konsultasi',
+  diagnosis: 'K03.6 Kalkulus supragingiva regio anterior rahang bawah',
   doctor_name: 'drg. Nama Dokter',
   created_by_name: 'Petugas Kasir',
   payment_method: 'transfer',

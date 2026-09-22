@@ -47,6 +47,7 @@ CREATE TABLE IF NOT EXISTS receipts (
   period         TEXT    NOT NULL,                   -- YYYYMM, untuk nomor urut
   seq            INTEGER NOT NULL,
   treatment_type TEXT,                               -- jenis perawatan (ringkasan)
+  diagnosis      TEXT,                               -- wajib: kwitansi tanpa diagnosis tidak sah
   doctor_name    TEXT,
   payment_method TEXT    NOT NULL,                   -- tunai | transfer | kartu
   payment_ref    TEXT,                               -- no. referensi transfer/kartu

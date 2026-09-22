@@ -98,6 +98,9 @@ kosong.
 
 * Nomor rekam medis diusulkan otomatis (`RM-000001`) dan tetap bisa diketik manual.
 * Pencarian pasien seketika berdasarkan nama, nomor rekam medis, atau telepon.
+* Diagnosis wajib diisi pada setiap kwitansi dan tercetak di bagian data
+  transaksi — kwitansi klinik tanpa diagnosis tidak sah secara administratif.
+  Format bebas; kode ICD-10 boleh disertakan.
 * Rincian biaya per baris: tindakan, obat, konsultasi, atau lainnya —
   memilih dari daftar tarif akan mengisi harga secara otomatis.
 * Metode pembayaran tunai, transfer, atau kartu; nomor referensi diwajibkan
@@ -446,7 +449,7 @@ memerlukan header `Authorization: Bearer <token>`.
 | GET    | `/receipts`                     | semua  | Arsip kwitansi (filter + halaman)   |
 | GET    | `/receipts/:id`                 | semua  | Detail + terbilang + QR             |
 | GET    | `/receipts/:id/pdf?size=a5land` | semua  | PDF (`a5land`,`a4land`,`a5`,`a4`,`thermal80`,`thermal58`) |
-| POST   | `/receipts`                     | semua  | Buat kwitansi                       |
+| POST   | `/receipts`                     | semua  | Buat kwitansi (`diagnosis` wajib)   |
 | POST   | `/receipts/:id/void`            | admin  | Batalkan kwitansi                   |
 | GET    | `/reports/summary`              | semua  | Rekap pendapatan                    |
 | GET    | `/reports/export.csv`           | semua  | Ekspor CSV                          |

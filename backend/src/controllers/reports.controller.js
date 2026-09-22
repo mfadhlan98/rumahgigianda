@@ -73,7 +73,7 @@ export async function exportCsv(req, res) {
   const { from, to } = range(req.query);
   const rows = await db.query(
     `SELECT r.receipt_no, r.receipt_date, p.medical_record_no, p.name AS patient_name,
-            r.treatment_type, r.doctor_name, r.payment_method, r.payment_ref,
+            r.treatment_type, r.diagnosis, r.doctor_name, r.payment_method, r.payment_ref,
             r.subtotal, r.discount, r.tax, r.total, r.status, u.full_name AS kasir
        FROM receipts r
        JOIN patients p ON p.id = r.patient_id
@@ -84,7 +84,7 @@ export async function exportCsv(req, res) {
   );
 
   const headers = [
-    'No Kwitansi', 'Tanggal', 'No RM', 'Nama Pasien', 'Jenis Perawatan', 'Dokter',
+    'No Kwitansi', 'Tanggal', 'No RM', 'Nama Pasien', 'Jenis Perawatan', 'Diagnosis', 'Dokter',
     'Metode', 'Referensi', 'Subtotal', 'Diskon', 'Pajak', 'Total', 'Status', 'Kasir',
   ];
   const esc = (val) => {

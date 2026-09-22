@@ -1,7 +1,7 @@
 {
   "name": "kwitansi-klinik-desktop",
   "productName": "Kwitansi Klinik",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "private": true,
   "description": "Cangkang desktop Sistem Kwitansi Klinik Gigi — membungkus server dan tampilan jadi satu aplikasi Windows.",
   "author": "Muhammad Fadhlan",
