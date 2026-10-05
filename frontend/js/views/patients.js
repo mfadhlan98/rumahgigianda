@@ -116,7 +116,7 @@ async function mount(root, { actions }) {
             field('Tanggal Lahir', h('input', {
               type: 'date', name: 'birth_date', max: todayISO(),
               value: existing?.birth_date ? String(existing.birth_date).slice(0, 10) : '',
-            })),
+            }), 'Format: hari/bulan/tahun.'),
             field('Jenis Kelamin', h('select', { name: 'gender' },
               h('option', { value: '', selected: !existing?.gender || null }, '— pilih —'),
               h('option', { value: 'L', selected: existing?.gender === 'L' || null }, 'Laki-laki'),

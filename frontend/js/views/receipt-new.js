@@ -39,7 +39,8 @@ async function mount(root, { actions }) {
 
       card('Detail Kunjungan', null, h('div', {},
         h('div', { class: 'grid cols-3' },
-          field('Tanggal Kwitansi', h('input', { type: 'date', name: 'receipt_date', value: todayISO(), max: todayISO() })),
+          field('Tanggal Kwitansi', h('input', { type: 'date', name: 'receipt_date', value: todayISO(), max: todayISO() }),
+            'Format: hari/bulan/tahun.'),
           field('Jenis Perawatan', h('input', { type: 'text', name: 'treatment_type', placeholder: 'mis. Perawatan gigi rutin' }), 'Ringkasan singkat, tercetak di kwitansi.'),
           field('Dokter Pemeriksa', h('input', {
             type: 'text', name: 'doctor_name', placeholder: 'mis. drg. Manda Prasetyo',
@@ -199,7 +200,8 @@ async function mount(root, { actions }) {
             field('No. Rekam Medis *', h('input', { type: 'text', name: 'medical_record_no', value: suggested })),
             field('Nama Lengkap *', h('input', { type: 'text', name: 'name' }))),
           h('div', { class: 'grid cols-2' },
-            field('Tanggal Lahir', h('input', { type: 'date', name: 'birth_date', max: todayISO() })),
+            field('Tanggal Lahir', h('input', { type: 'date', name: 'birth_date', max: todayISO() }),
+              'Format: hari/bulan/tahun.'),
             field('Jenis Kelamin', h('select', { name: 'gender' },
               h('option', { value: '' }, '— pilih —'),
               h('option', { value: 'L' }, 'Laki-laki'),

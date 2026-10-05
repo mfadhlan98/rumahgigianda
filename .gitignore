@@ -55,3 +55,6 @@ desktop/dist/
 # Ikon klinik untuk installer — merek klien, sama seperti aset-merek/
 desktop/assets/icon.png
 desktop/assets/icon.ico
+
+# Installer hasil build — jangan pernah masuk repo publik (ratusan MB)
+*.exe
