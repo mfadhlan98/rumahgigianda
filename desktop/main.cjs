@@ -34,6 +34,12 @@ const PORT_BAWAAN = 4000;
 // appId di konfigurasi pembangun, atau ikonnya jatuh ke ikon Electron generik.
 app.setAppUserModelId(ID_APLIKASI);
 
+// Kolom <input type="date"> memakai format tanggal dari locale Chromium, bukan
+// dari HTML — tanpa ini kasir melihat mm/dd/yyyy. Berbahaya untuk tanggal lahir:
+// 05/06/1990 yang dimaksud 5 Juni tersimpan diam-diam sebagai 6 Mei. Harus
+// dipasang sebelum app siap agar terbaca saat Chromium dinyalakan.
+app.commandLine.appendSwitch('lang', 'id-ID');
+
 /* ---------- Satu instans saja ---------- */
 
 // Klik ikon dua kali tidak boleh menjalankan dua server yang berebut port.

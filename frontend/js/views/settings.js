@@ -74,6 +74,8 @@ async function mount(root, { ctx }) {
         field('Nama Penanda Tangan', input('signer_name', s.signer_name, admin),
           'Kosongkan untuk memakai nama kasir yang menerbitkan.'),
         field('Jabatan Penanda Tangan', input('signer_title', s.signer_title, admin))),
+      field('Nama Dokter Pemeriksa Bawaan', input('default_doctor_name', s.default_doctor_name, admin),
+        'Mengisi otomatis kolom Dokter Pemeriksa pada kwitansi baru. Kasir tetap bisa menggantinya.'),
       field('Catatan Kaki Kwitansi', textarea('receipt_footer_note', s.receipt_footer_note, admin))),
 
     admin ? h('div', { class: 'btn-row end' },

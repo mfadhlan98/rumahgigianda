@@ -220,11 +220,9 @@ export async function create(req, res) {
       receipt_date: 'Tanggal melebihi hari ini.',
     });
   }
-  if (head.payment_method !== 'tunai' && !head.payment_ref) {
-    throw badRequest('Nomor referensi wajib diisi untuk pembayaran non-tunai.', {
-      payment_ref: 'Wajib diisi untuk transfer/kartu.',
-    });
-  }
+  /* Nomor referensi tidak diwajibkan: nomor transaksi transfer sering baru
+     diketahui belakangan saat mutasi dicek, sementara pasien sudah menunggu
+     kwitansinya. Kolomnya tetap ada supaya rekonsiliasi masih mungkin. */
 
   const patient = await db.get('SELECT * FROM patients WHERE id = ?', [head.patient_id]);
   if (!patient) throw badRequest('Pasien tidak ditemukan.', { patient_id: 'Pilih pasien yang valid.' });

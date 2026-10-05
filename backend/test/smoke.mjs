@@ -137,12 +137,6 @@ r = await call('POST', '/api/receipts', {
 check('uang diterima kurang ditolak', r.status === 400 && !!r.json.details?.amount_paid, JSON.stringify(r.json));
 
 r = await call('POST', '/api/receipts', {
-  patient_id: patientId, payment_method: 'transfer', diagnosis: 'K02.1',
-  items: [{ description: 'Scaling', qty: 1, unit_price: 350000 }],
-});
-check('transfer tanpa nomor referensi ditolak', r.status === 400 && !!r.json.details?.payment_ref, JSON.stringify(r.json));
-
-r = await call('POST', '/api/receipts', {
   patient_id: patientId, receipt_date: '2099-01-01', payment_method: 'tunai', amount_paid: 350000, diagnosis: 'K02.1',
   items: [{ description: 'Scaling', qty: 1, unit_price: 350000 }],
 });
@@ -320,6 +314,17 @@ check('awalan baru dipakai kwitansi berikutnya', String(r.json.data?.receipt_no 
 check('non-tunai dianggap lunas penuh',
   r.json.data?.amount_paid === 250000 && r.json.data?.change_amount === 0,
   JSON.stringify({ bayar: r.json.data?.amount_paid, kembali: r.json.data?.change_amount }));
+
+/* Nomor referensi tidak lagi diwajibkan. Diuji paling belakang karena
+   menerbitkan kwitansi, sehingga tidak mengganggu hitungan di atasnya. */
+r = await call('POST', '/api/receipts', {
+  patient_id: patientId, payment_method: 'transfer', diagnosis: 'K02.1',
+  items: [{ description: 'Scaling', qty: 1, unit_price: 350000 }],
+});
+check('transfer tanpa nomor referensi diterima', r.status === 201, JSON.stringify(r.json).slice(0, 200));
+check('non-tunai tanpa referensi tetap lunas penuh',
+  r.json.data?.amount_paid === 350000 && r.json.data?.change_amount === 0,
+  `paid=${r.json.data?.amount_paid} kembali=${r.json.data?.change_amount}`);
 
 const page = await fetch(`${BASE}/verify.html`);
 check('halaman verifikasi publik tersaji', page.status === 200 && (await page.text()).includes('Verifikasi Kwitansi'));

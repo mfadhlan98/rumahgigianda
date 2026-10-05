@@ -37,6 +37,11 @@ export const SETTING_DEFS = {
     max: 300,
     fallback: () => 'Kwitansi ini dicetak oleh sistem dan sah tanpa tanda tangan basah.',
   },
+  /* Praktik satu dokter mengetik nama yang sama berulang kali tiap kwitansi.
+     Nilai ini hanya mengisi awal kolomnya — kasir tetap bisa menimpanya bila
+     yang memeriksa dokter pengganti. */
+  default_doctor_name: { label: 'Nama dokter pemeriksa bawaan', max: 150, fallback: () => '' },
+
   signer_name: { label: 'Nama penanda tangan', max: 120, fallback: () => '' },
   signer_title: { label: 'Jabatan penanda tangan', max: 80, fallback: () => 'Dokter Gigi' },
 

@@ -320,8 +320,12 @@ function drawMoneyPanel(doc, r, F, k, x, y, w, C) {
     ...(r.discount > 0 ? [['Diskon', `- ${rupiah(r.discount)}`, false]] : []),
     ...(r.tax > 0 ? [['Pajak', rupiah(r.tax), false]] : []),
     ['TOTAL DIBAYAR', rupiah(r.total), true],
-    ['Uang Diterima', rupiah(r.amount_paid), false],
-    ['Kembalian', rupiah(r.change_amount), false],
+    /* Hanya dicetak bila memang ada kembalian. Kwitansi baru selalu dibayar
+       pas, tetapi kwitansi lama yang terlanjur terbit dengan kembalian harus
+       tetap tercetak apa adanya bila dicetak ulang. */
+    ...(r.change_amount > 0
+      ? [['Uang Diterima', rupiah(r.amount_paid), false], ['Kembalian', rupiah(r.change_amount), false]]
+      : []),
   ];
 
   const fontFor = (strong) => [strong ? F.bold : F.regular, (strong ? 10.5 : 8.6) * k];
@@ -586,8 +590,10 @@ function drawThermal(doc, r, s, F, qr) {
   if (r.discount > 0) pair('Diskon', `-${rupiah(r.discount)}`);
   if (r.tax > 0) pair('Pajak', rupiah(r.tax));
   pair('TOTAL', rupiah(r.total), true);
-  pair('Bayar', rupiah(r.amount_paid));
-  pair('Kembali', rupiah(r.change_amount));
+  if (r.change_amount > 0) {
+    pair('Bayar', rupiah(r.amount_paid));
+    pair('Kembali', rupiah(r.change_amount));
+  }
   rule();
 
   doc.font(F.regular).fontSize(6.4).fillColor('#000000')

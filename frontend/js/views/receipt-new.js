@@ -14,6 +14,9 @@ export default { mount };
 
 async function mount(root, { actions }) {
   const tarif = await api.get('/service-items');
+  // Profil klinik dipakai untuk nilai bawaan kolom; kegagalannya tidak boleh
+  // menghalangi kasir menerbitkan kwitansi, jadi cukup jatuh ke objek kosong.
+  const pengaturan = await api.get('/settings').then((r) => r.data).catch(() => ({}));
   const layanan = tarif.data || [];
 
   let pasien = null;          // pasien terpilih
@@ -38,7 +41,10 @@ async function mount(root, { actions }) {
         h('div', { class: 'grid cols-3' },
           field('Tanggal Kwitansi', h('input', { type: 'date', name: 'receipt_date', value: todayISO(), max: todayISO() })),
           field('Jenis Perawatan', h('input', { type: 'text', name: 'treatment_type', placeholder: 'mis. Perawatan gigi rutin' }), 'Ringkasan singkat, tercetak di kwitansi.'),
-          field('Dokter Pemeriksa', h('input', { type: 'text', name: 'doctor_name', placeholder: 'mis. drg. Manda Prasetyo' })),
+          field('Dokter Pemeriksa', h('input', {
+            type: 'text', name: 'doctor_name', placeholder: 'mis. drg. Manda Prasetyo',
+            value: pengaturan.default_doctor_name || '',
+          })),
         ),
         h('div', { class: 'mt-2' },
           field(h('span', {}, 'Diagnosis ', h('span', { class: 'req' }, '*')),
@@ -72,11 +78,15 @@ async function mount(root, { actions }) {
           h('option', { value: 'kartu' }, 'Kartu Debit/Kredit'))),
         h('div', { id: 'refWrap', class: 'hidden' },
           field('Nomor Referensi', h('input', { type: 'text', name: 'payment_ref', placeholder: 'No. transaksi / 4 digit akhir kartu' }),
-            'Wajib untuk transfer dan kartu, agar mudah dicocokkan saat rekonsiliasi.')),
+            'Opsional — isi bila nomornya sudah ada, agar mudah dicocokkan dengan mutasi rekening.')),
         h('div', { class: 'grid cols-2' },
           field('Diskon', h('input', { type: 'text', name: 'discount', class: 'money', inputmode: 'numeric', value: '0' })),
           field('Pajak / Biaya Lain', h('input', { type: 'text', name: 'tax', class: 'money', inputmode: 'numeric', value: '0' }))),
-        h('div', { id: 'paidWrap' },
+        /* Kolom "Uang Diterima" disembunyikan atas permintaan klinik: kasir
+           menghitung kembalian sendiri, dan satu kolom per transaksi itu beban
+           yang nyata. Inputnya tetap ada di DOM supaya perhitungan, pengosongan
+           formulir, dan pemulihan kolom ini kelak tidak perlu dibongkar ulang. */
+        h('div', { id: 'paidWrap', class: 'hidden' },
           field('Uang Diterima', h('input', { type: 'text', name: 'amount_paid', class: 'money', inputmode: 'numeric', value: '0' }),
             'Isi nominal uang yang diserahkan pasien.')),
         field('Catatan', h('textarea', { name: 'notes', rows: 2, placeholder: 'mis. kontrol ulang 2 minggu lagi' })),
@@ -424,7 +434,9 @@ async function mount(root, { actions }) {
     const tax = parseUang(el('[name=tax]', form)?.value);
     const method = el('[name=payment_method]', form)?.value || 'tunai';
     const total = Math.max(0, subtotal - discount + tax);
-    const paid = method === 'tunai' ? parseUang(el('[name=amount_paid]', form)?.value) : total;
+    // Kolom uang diterima disembunyikan, jadi setiap pembayaran dianggap pas
+    // sejumlah total — tidak ada kembalian yang perlu dicetak.
+    const paid = total;
     return { subtotal, discount, tax, total, paid, change: paid - total, method };
   }
 
@@ -437,10 +449,6 @@ async function mount(root, { actions }) {
       t.discount > 0 ? totalRow('Diskon', `- ${fmtRupiah(t.discount)}`) : null,
       t.tax > 0 ? totalRow('Pajak / biaya lain', fmtRupiah(t.tax)) : null,
       totalRow('Total Dibayar', fmtRupiah(t.total), 'grand'),
-      t.method === 'tunai' ? totalRow('Uang diterima', fmtRupiah(t.paid)) : null,
-      t.method === 'tunai'
-        ? totalRow('Kembalian', t.change >= 0 ? fmtRupiah(t.change) : 'Uang kurang', t.change >= 0 ? 'change' : 'kurang')
-        : null,
       h('div', { class: 'terbilang' }, terbilangRupiah(t.total)),
     ].filter(Boolean));
     if (t.discount > t.subtotal) {
@@ -456,12 +464,12 @@ async function mount(root, { actions }) {
 
   const methodSel = el('[name=payment_method]', form);
   const refWrap = el('#refWrap', form);
-  const paidWrap = el('#paidWrap', form);
 
   const syncMethod = () => {
     const nonTunai = methodSel.value !== 'tunai';
     refWrap.classList.toggle('hidden', !nonTunai);
-    paidWrap.classList.toggle('hidden', nonTunai);
+    // #paidWrap sengaja tidak ikut di-toggle: kolom Uang Diterima tetap
+    // tersembunyi untuk semua metode pembayaran.
     renderTotals();
   };
   methodSel.addEventListener('change', syncMethod);
@@ -511,7 +519,7 @@ async function mount(root, { actions }) {
       payment_ref: el('[name=payment_ref]', form).value.trim(),
       discount: t.discount,
       tax: t.tax,
-      amount_paid: t.method === 'tunai' ? t.paid : 0,
+      amount_paid: t.method === 'tunai' ? t.total : 0,
       notes: el('[name=notes]', form).value.trim(),
       items: rows.map((r) => ({
         service_item_id: r.service_item_id,
