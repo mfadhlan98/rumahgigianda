@@ -92,6 +92,9 @@ function muatKonfigurasi() {
   }
   if (!Number.isInteger(cfg.port) || cfg.port < 1024 || cfg.port > 65535) cfg.port = PORT_BAWAAN;
   if (typeof cfg.autostart !== 'boolean') { cfg.autostart = true; pertamaKali = true; }
+  // Folder salinan cadangan di luar komputer ini — biasanya folder Google Drive
+  // atau OneDrive yang tersinkron ke awan. null berarti belum dipilih.
+  if (typeof cfg.folderCadanganLuar !== 'string' || !cfg.folderCadanganLuar) cfg.folderCadanganLuar = null;
 
   if (pertamaKali) simpanKonfigurasi(cfg);
   return { cfg, pertamaKali };
@@ -162,6 +165,7 @@ async function mulaiServer(cfg) {
  */
 const JEDA_PERIKSA = 30 * 60 * 1000;
 const USIA_MAKS = 23 * 60 * 60 * 1000;
+let konfigAktif = null;        // diisi saat aplikasi siap, dipakai penjadwal
 let cadangkanSqlite = null;
 let pangkasCadangan = null;
 let cadanganTerakhir = null;   // { waktu, berkas } atau { waktu, galat }
@@ -176,11 +180,12 @@ function usiaCadanganTerbaru() {
   } catch { return Infinity; }
 }
 
-function jalankanCadangan(alasan) {
+function jalankanCadangan(alasan, cfg = konfigAktif) {
   try {
     const hasil = cadangkanSqlite();
     const dihapus = pangkasCadangan();
     cadanganTerakhir = { waktu: new Date(), berkas: path.basename(hasil.file) };
+    if (cfg) salinKeFolderLuar(hasil.file, cfg);
     console.log(`[cadangan] ${alasan}: ${path.basename(hasil.file)} (${Math.round(hasil.bytes / 1024)} KB)`
       + (dihapus.length ? `, ${dihapus.length} cadangan lama dihapus` : ''));
   } catch (err) {
@@ -188,6 +193,60 @@ function jalankanCadangan(alasan) {
     console.error(`[cadangan] gagal (${alasan}): ${err.message}`);
   }
   perbaruiTooltip();
+}
+
+/* ---------- Salinan cadangan ke folder awan ----------
+ *
+ * Cadangan harian tersimpan di dalam folder data komputer ini juga — ikut
+ * hilang bila komputernya rusak, dicuri, atau dijual. Satu klinik sudah
+ * kehilangan seluruh datanya persis karena itu.
+ *
+ * Maka setiap cadangan yang berhasil disalin sekali lagi ke folder pilihan
+ * pengguna, biasanya folder Google Drive atau OneDrive yang tersinkron
+ * sendiri ke awan. Kegagalannya tidak pernah menggagalkan pencadangan
+ * lokalnya: folder awan bisa saja sedang tidak terpasang, dan cadangan di
+ * komputer sendiri tetap lebih berharga daripada tidak ada sama sekali.
+ */
+const MAKS_SALINAN = 30;
+let salinanTerakhir = null;    // { waktu, berkas } atau { waktu, galat }
+
+/** Tebak lokasi folder awan yang lazim, untuk nilai awal kotak pemilih. */
+function tebakFolderAwan() {
+  const rumah = app.getPath('home');
+  const calon = [
+    'G:\\My Drive', 'H:\\My Drive',
+    path.join(rumah, 'My Drive'),
+    path.join(rumah, 'Google Drive'),
+    path.join(rumah, 'OneDrive'),
+  ];
+  for (const c of calon) {
+    try { if (fs.statSync(c).isDirectory()) return c; } catch { /* lanjut */ }
+  }
+  return rumah;
+}
+
+function salinKeFolderLuar(berkasAsal, cfg) {
+  const tujuan = cfg.folderCadanganLuar;
+  if (!tujuan) return;
+  try {
+    fs.mkdirSync(tujuan, { recursive: true });
+    const nama = path.basename(berkasAsal);
+    fs.copyFileSync(berkasAsal, path.join(tujuan, nama));
+
+    // Jaga agar folder awan tidak tumbuh tanpa batas.
+    const lama = fs.readdirSync(tujuan)
+      .filter((f) => /^klinik-\d{8}-\d{4}\.db$/.test(f))
+      .sort();
+    for (const f of lama.slice(0, Math.max(0, lama.length - MAKS_SALINAN))) {
+      try { fs.unlinkSync(path.join(tujuan, f)); } catch { /* biarkan */ }
+    }
+
+    salinanTerakhir = { waktu: new Date(), berkas: nama };
+    console.log(`[cadangan] disalin ke ${tujuan}`);
+  } catch (err) {
+    salinanTerakhir = { waktu: new Date(), galat: err.message };
+    console.error(`[cadangan] gagal menyalin ke folder luar: ${err.message}`);
+  }
 }
 
 function mulaiPenjadwalCadangan() {
@@ -201,6 +260,8 @@ function perbaruiTooltip() {
   let baris = `${NAMA} — berjalan di port ${process.env.PORT}`;
   if (cadanganTerakhir?.berkas) baris += `\nCadangan terakhir: ${cadanganTerakhir.waktu.toLocaleString('id-ID')}`;
   else if (cadanganTerakhir?.galat) baris += `\nCADANGAN GAGAL: ${cadanganTerakhir.galat}`;
+  if (salinanTerakhir?.galat) baris += `\nSalinan ke folder awan gagal: ${salinanTerakhir.galat}`;
+  else if (salinanTerakhir?.berkas) baris += `\nSalinan awan: ${salinanTerakhir.berkas}`;
   baki.setToolTip(baris);
 }
 
@@ -267,6 +328,50 @@ function buatJendela(port) {
   });
 }
 
+/** Potong jalur panjang agar muat di menu baki. */
+function ringkasJalur(p) {
+  return p.length > 38 ? '…' + p.slice(-37) : p;
+}
+
+function laporStatusSalinan() {
+  if (salinanTerakhir?.galat) {
+    dialog.showMessageBox({
+      type: 'warning',
+      title: 'Salinan cadangan gagal',
+      message: 'Cadangan di komputer ini tetap dibuat, tetapi salinannya gagal.',
+      detail: salinanTerakhir.galat
+        + '\n\nPeriksa apakah folder tujuan masih ada dan Google Drive sedang berjalan.',
+    });
+  } else if (salinanTerakhir?.berkas) {
+    dialog.showMessageBox({
+      type: 'info',
+      title: 'Salinan cadangan berhasil',
+      message: `${salinanTerakhir.berkas} sudah disalin ke folder cadangan.`,
+      detail: 'Google Drive akan mengunggahnya sendiri beberapa saat lagi.',
+    });
+  }
+}
+
+/**
+ * Folder tujuan dipilih lewat kotak dialog, bukan diketik di berkas
+ * konfigurasi: pemiliknya harus bisa mengaturnya sendiri tanpa menyentuh JSON.
+ */
+async function pilihFolderCadanganLuar(port, cfg) {
+  const hasil = await dialog.showOpenDialog({
+    title: 'Pilih folder untuk salinan cadangan',
+    defaultPath: cfg.folderCadanganLuar || tebakFolderAwan(),
+    properties: ['openDirectory', 'createDirectory'],
+    buttonLabel: 'Pakai folder ini',
+  });
+  if (hasil.canceled || !hasil.filePaths?.length) return;
+
+  cfg.folderCadanganLuar = hasil.filePaths[0];
+  simpanKonfigurasi(cfg);
+  buatBaki(port, cfg);
+  jalankanCadangan('manual', cfg);   // langsung buktikan bahwa jalurnya bisa ditulis
+  laporStatusSalinan();
+}
+
 function buatBaki(port, cfg) {
   const ikon = berkasIkon();
   baki = new Tray(ikon ? nativeImage.createFromPath(ikon) : nativeImage.createEmpty());
@@ -284,8 +389,39 @@ function buatBaki(port, cfg) {
       label: 'Alamat untuk komputer / HP lain (klik untuk salin)',
       submenu: alamat.length ? alamat : [{ label: 'Tidak terhubung ke jaringan', enabled: false }],
     },
-    { label: 'Cadangkan sekarang', click: () => jalankanCadangan('manual') },
+    { label: 'Cadangkan sekarang', click: () => jalankanCadangan('manual', cfg) },
     { label: 'Buka folder data & cadangan', click: () => shell.openPath(userData) },
+    {
+      label: cfg.folderCadanganLuar
+        ? `Salinan cadangan: ${ringkasJalur(cfg.folderCadanganLuar)}`
+        : 'Salinan cadangan ke Google Drive — belum diatur',
+      submenu: [
+        {
+          label: cfg.folderCadanganLuar ? 'Ganti folder…' : 'Pilih folder…',
+          click: () => pilihFolderCadanganLuar(port, cfg),
+        },
+        {
+          label: 'Buka folder salinan',
+          enabled: !!cfg.folderCadanganLuar,
+          click: () => shell.openPath(cfg.folderCadanganLuar),
+        },
+        {
+          label: 'Salin cadangan terbaru sekarang',
+          enabled: !!cfg.folderCadanganLuar,
+          click: () => { jalankanCadangan('manual', cfg); laporStatusSalinan(); },
+        },
+        { type: 'separator' },
+        {
+          label: 'Matikan salinan otomatis',
+          enabled: !!cfg.folderCadanganLuar,
+          click: () => {
+            cfg.folderCadanganLuar = null;
+            simpanKonfigurasi(cfg);
+            buatBaki(port, cfg);
+          },
+        },
+      ],
+    },
     { type: 'separator' },
     {
       label: 'Jalankan saat Windows menyala',
@@ -304,6 +440,10 @@ function buatBaki(port, cfg) {
 
 app.whenReady().then(async () => {
   const { cfg } = muatKonfigurasi();
+  // Penjadwal cadangan berjalan di luar alur ini dan perlu tahu folder salinan
+  // yang sedang dipakai; objek yang sama dipegang bersama menu baki, sehingga
+  // perubahan dari dialog langsung terbaca oleh pencadangan berikutnya.
+  konfigAktif = cfg;
 
   terapkanAutostart(cfg);
 

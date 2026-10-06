@@ -400,8 +400,25 @@ Pencadangan memakai `VACUUM INTO`, yang menghasilkan salinan utuh **tanpa perlu
 menghentikan server** — aman dijalankan di tengah jam praktik.
 
 > **Salin folder `backup/` ke flashdisk atau cloud secara berkala.** Cadangan
-> yang hanya tersimpan di komputer yang sama ikut hilang bila komputernya rusak
-> atau dicuri.
+> yang hanya tersimpan di komputer yang sama ikut hilang bila komputernya rusak,
+> dicuri, atau dijual. Ini bukan kemungkinan teoretis — sudah pernah terjadi.
+
+### Salinan otomatis ke folder awan (versi installer)
+
+Agar peringatan di atas tidak bergantung pada kedisiplinan orang, aplikasi bisa
+menyalin sendiri setiap cadangan ke folder lain: klik kanan ikon baki →
+**Salinan cadangan ke Google Drive** → *Pilih folder…*, lalu arahkan ke folder
+yang disinkronkan Google Drive atau OneDrive. Jalurnya disimpan sebagai
+`folderCadanganLuar` di `konfigurasi.json`.
+
+Setiap pencadangan yang berhasil langsung disalin ke sana, dan salinannya
+dipangkas pada 30 berkas terbaru agar folder awan tidak tumbuh tanpa batas.
+
+Kegagalan menyalin **tidak pernah menggagalkan pencadangan lokal** — folder awan
+bisa saja sedang tidak terpasang, dan cadangan di komputer sendiri tetap lebih
+berharga daripada tidak ada sama sekali. Statusnya terlihat pada tooltip ikon
+baki, dan *Salin cadangan terbaru sekarang* di submenu yang sama melaporkan
+berhasil atau gagalnya lewat kotak pesan.
 
 ### Peringatan: database itu tiga berkas, bukan satu
 
